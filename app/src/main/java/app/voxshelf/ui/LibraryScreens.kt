@@ -94,12 +94,13 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
             }
         } else if (tab == DOWNLOADED_TAB) {
             val downloads = remember { Downloads.get(context) }
-            val books by produceState<List<Recording>?>(null, changes) {
+            var refresh by remember { mutableStateOf(0) }
+            val books by produceState<List<Recording>?>(null, changes, refresh) {
                 value = downloads.bookIds().mapNotNull { catalog.recording(it) }
             }
             books?.let { list ->
                 if (list.isEmpty()) Empty("Books you download for offline listening will show up here. Tap \"Download\" on any book.")
-                else BookRows(list, null, onBook)
+                else BookRows(list, null, onBook, onDownloadRemoved = { refresh++ })
             }
         } else {
             val status = Status.entries.first { it.label == tab }
@@ -128,7 +129,7 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
 }
 
 @Composable
-private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: Int) -> Unit) {
+private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: Int) -> Unit, onDownloadRemoved: () -> Unit = {}) {
     val context = LocalContext.current
     val positions = PositionStore(context)
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -137,6 +138,7 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
                 Modifier.fillMaxWidth().clickable { onBook(r.workId) }.padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
+                val downloaded by produceState(false, r.id) { value = Downloads.get(context).status(r.id) == BookDownload.Done }
                 Cover(r.title, r.authors, 130.dp, art = r.cover)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
@@ -151,13 +153,60 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
                         style = text(13.sp, 600, Lantern.TextMuted),
                         maxLines = 1,
                     )
-                    val downloaded by produceState(false, r.id) { value = Downloads.get(context).status(r.id) == BookDownload.Done }
                     if (downloaded) Text("Downloaded ✓", style = text(13.sp, 800, Lantern.Gold), modifier = Modifier.padding(top = 2.dp))
                 }
+                RowMenu(r, status, downloaded, onDownloadRemoved)
             }
         }
     }
 }
+
+/** The "⋯" on each shelf book: mark it finished, take it off the shelf, or remove its download. */
+@Composable
+private fun RowMenu(r: Recording, status: Status?, downloaded: Boolean, onDownloadRemoved: () -> Unit) {
+    val context = LocalContext.current
+    val library = remember { Library.get(context) }
+    val scope = rememberCoroutineScope()
+    var open by remember { mutableStateOf(false) }
+    var removingDownload by remember { mutableStateOf(false) }
+    val entry by produceState<app.voxshelf.LibraryEntry?>(null, r.workId, open) { value = library.entry(r.workId) }
+    androidx.compose.foundation.layout.Box {
+        IconCircle("More options for ${r.title}", { open = true }) { u ->
+            listOf(6f, 12f, 18f).forEach { x -> drawCircle(Lantern.Text, 1.8f * u, androidx.compose.ui.geometry.Offset(x * u, 12 * u)) }
+        }
+        androidx.compose.material3.DropdownMenu(expanded = open, onDismissRequest = { open = false }, containerColor = Lantern.SurfaceHigh) {
+            if ((entry?.status ?: status) != Status.Finished) MenuItem("Mark as finished") {
+                open = false
+                scope.launch { library.setStatus(r.workId, r.id, Status.Finished) }
+            }
+            if (entry != null) MenuItem("Remove from shelf") {
+                open = false
+                scope.launch { library.setStatus(r.workId, r.id, null) }
+            }
+            if (downloaded) MenuItem("Remove download") { open = false; removingDownload = true }
+        }
+    }
+    if (removingDownload) AlertDialog(
+        onDismissRequest = { removingDownload = false },
+        containerColor = Lantern.Surface,
+        title = { Text("Remove download?", style = text(20.sp, 800)) },
+        text = { Text("You can still stream it, or download it again later.", style = text(15.sp, 400, Lantern.TextSoft)) },
+        confirmButton = {
+            DialogButton("Remove download") {
+                Downloads.get(context).remove(r.id)
+                removingDownload = false
+                scope.launch { kotlinx.coroutines.delay(500); onDownloadRemoved() }
+            }
+        },
+        dismissButton = { DialogButton("Cancel") { removingDownload = false } },
+    )
+}
+
+@Composable
+private fun MenuItem(label: String, onClick: () -> Unit) = androidx.compose.material3.DropdownMenuItem(
+    text = { Text(label, style = text(16.sp, 700)) },
+    onClick = onClick,
+)
 
 /** "42% · 3h 10m left", worked out from each chapter's length. Falls back to the chapter when lengths aren't known. */
 private fun progressLine(book: app.voxshelf.Book?, saved: app.voxshelf.SavedPosition, r: Recording): String {
@@ -309,7 +358,7 @@ private fun DownloadPill(book: Recording) {
         containerColor = Lantern.Surface,
         title = { Text(if (done) "Remove download?" else "Stop downloading?", style = text(20.sp, 800)) },
         text = { Text("You can still stream it, or download it again later.", style = text(15.sp, 400, Lantern.TextSoft)) },
-        confirmButton = { DialogButton(if (done) "Remove" else "Stop") { downloads.remove(book.id); removing = false } },
+        confirmButton = { DialogButton(if (done) "Remove download" else "Stop downloading") { downloads.remove(book.id); removing = false } },
         dismissButton = { DialogButton("Cancel") { removing = false } },
     )
     if (error) AlertDialog(
