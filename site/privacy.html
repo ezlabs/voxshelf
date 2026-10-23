@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voxshelf Privacy</title>
+<meta name="description" content="Free audiobooks with no ads and no account. Voxshelf plays over 21,000 public domain audiobooks recorded by LibriVox volunteers.">
+<meta name="theme-color" content="#0F1A15">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
+<style>
+/* One quiet column, the app's own night-reading look: dark green, gold, and the book mark glowing at the top. */
+:root {
+  --forest: #0F1A15;
+  --surface: #18261F;
+  --line: #233A2F;
+  --gold: #F2C76E;
+  --text: #EAF2EC;
+  --soft: #CFE3D6;
+  --muted: #A6B8AD;
+  --font: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--forest); color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.6; }
+a { color: var(--gold); }
+a:focus-visible, .button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+
+header { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+header svg { width: 34px; height: 34px; }
+
+.hero { text-align: center; padding-block: 56px 40px; display: grid; justify-items: center; gap: 18px; }
+.hero .mark { width: 132px; height: 132px; }
+h1 { font-size: clamp(36px, 7vw, 56px); line-height: 1.05; font-weight: 900; margin: 8px 0 0; text-wrap: balance; letter-spacing: -0.01em; }
+.lede { color: var(--soft); font-size: 19px; max-width: 34em; margin: 0; text-wrap: balance; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
+.button { display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 14px 24px; font-weight: 800; font-size: 17px; text-decoration: none; }
+.button.primary { background: var(--gold); color: var(--forest); }
+.button.quiet { background: var(--surface); color: var(--muted); border: 1px solid var(--line); cursor: default; }
+.button svg { width: 20px; height: 20px; }
+
+.features { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.features li { background: var(--surface); border-radius: 18px; padding: 18px 20px; min-width: 0; }
+.features strong { display: block; font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+.features span { color: var(--muted); font-size: 15px; }
+
+section { margin-top: 48px; }
+h2 { font-size: 22px; font-weight: 800; margin: 0 0 10px; }
+section p { color: var(--soft); margin: 0 0 10px; max-width: 62ch; }
+
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted); font-size: 15px; }
+footer a { color: var(--muted); }
+footer .email { user-select: all; }
+
+@media (max-width: 560px) {
+  .features { grid-template-columns: 1fr; }
+  .hero { padding-block: 36px 28px; }
+}
+main h1 { font-size: clamp(30px,6vw,40px); text-align: left; margin: 36px 0 16px; }
+main h2 { margin-top: 32px; }
+main p, main li { color: var(--soft); max-width: 66ch; }
+main ul { padding-left: 22px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a href="./" style="display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none"><svg viewBox="22 14 64 74" aria-hidden="true" style="width:34px;height:34px"><path d="M54 84 C46 70 36 56 22 44 C34 40 46 44 54 56 Z" fill="#F2C76E"/><path d="M54 84 C62 70 72 56 86 44 C74 40 62 44 54 56 Z" fill="#F2C76E" opacity=".86"/><g fill="none" stroke="#F2C76E" stroke-width="4" stroke-linecap="round"><path d="M45 37 A12 12 0 0 1 63 37"/><path d="M38 28 A22 22 0 0 1 70 28" opacity=".6"/><path d="M31 19 A32 32 0 0 1 77 19" opacity=".3"/></g></svg>Voxshelf</a></header>
+  <main>
+<h1>Voxshelf privacy policy</h1>
+<p><em>Last updated: October 23, 2026</em></p>
+<p>Voxshelf is a free audiobook app for LibriVox recordings. It has no ads, no accounts and no tracking. This page explains the little information the app does send, and why.</p>
+<h2>What stays on your phone</h2>
+<p>Your library, lists, listening progress, downloads and settings are stored only on your phone. If you use Android&#x27;s backup, your library and progress are included in your own Google backup so they come back on a new phone. Downloaded audio is not backed up.</p>
+<h2>What the app sends</h2>
+<p><strong>Ratings and problem reports.</strong> When you rate a recording, the app sends your thumbs up or down, any problems you tick, any note you write, and the chapter you were on. Each phone gets a random ID so it can only rate a recording once; the ID isn&#x27;t linked to your name, email or Google account. Other people only ever see totals, like &quot;92% liked&quot;. Notes are never shown in the app. Problem reports (the problems you tick and your note) are copied to the Voxshelf project&#x27;s issue tracker on GitHub so they can be fixed.</p>
+<p><strong>Crash reports.</strong> If the app crashes, the next time you open it, it sends a description of the error, the app version, your Android version and your phone model. Nothing about you or what you were listening to is included.</p>
+<h2>Services the app talks to</h2>
+<p>To play and show books, the app connects directly to:</p>
+<ul><li><strong>LibriVox</strong> (librivox.org) for book details</li><li><strong>The Internet Archive</strong> (archive.org) for audio and cover art</li><li><strong>The Voxshelf server</strong>, hosted on Cloudflare, for ratings, problem reports, crash reports and cover images</li></ul>
+<p>Like any website, these services can see your phone&#x27;s internet address when it connects. Voxshelf doesn&#x27;t keep internet addresses, apart from briefly counting requests to stop spam.</p>
+<h2>What we don&#x27;t do</h2>
+<ul><li>No ads, and no advertising or analytics companies</li><li>No selling or sharing of information</li><li>No accounts, and no access to your contacts, location, microphone or files</li></ul>
+<h2>Removing your ratings</h2>
+<p>Uninstalling the app (and deleting its Android backup, which keeps the random ID so your ratings follow you to a new phone) removes the ID, so your past ratings can no longer be linked to anything. If you&#x27;d like your ratings deleted, email hello@voxshelf.app.</p>
+<h2>Children</h2>
+<p>Voxshelf doesn&#x27;t collect personal information from anyone, including children.</p>
+<h2>Changes</h2>
+<p>If this policy changes, the new version will be posted here with a new date.</p>
+<h2>Contact</h2>
+<p>Questions? Email hello@voxshelf.app.</p>
+  </main>
+
+  <footer>
+    <a href="privacy.html">Privacy</a>
+    <a href="https://github.com/ezlabs/voxshelf">GitHub</a>
+    <span>Contact: <span class="email">hello@voxshelf.app</span></span>
+  </footer>
+</div>
+</body>
+</html>

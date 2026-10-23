@@ -32,7 +32,7 @@ Like any website, these services can see your phone's internet address when it c
 
 ## Removing your ratings
 
-Uninstalling the app (and deleting its Android backup, which keeps the random ID so your ratings follow you to a new phone) removes the ID, so your past ratings can no longer be linked to anything. If you'd like your ratings deleted, open an issue on the Voxshelf GitHub project.
+Uninstalling the app (and deleting its Android backup, which keeps the random ID so your ratings follow you to a new phone) removes the ID, so your past ratings can no longer be linked to anything. If you'd like your ratings deleted, email hello@voxshelf.app.
 
 ## Children
 
@@ -44,4 +44,4 @@ If this policy changes, the new version will be posted here with a new date.
 
 ## Contact
 
-Questions? Open an issue on the Voxshelf GitHub project.
+Questions? Email hello@voxshelf.app.

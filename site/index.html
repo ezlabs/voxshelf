@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Voxshelf</title>
+<meta name="description" content="Free audiobooks with no ads and no account. Voxshelf plays over 21,000 public domain audiobooks recorded by LibriVox volunteers.">
+<meta name="theme-color" content="#0F1A15">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap">
+<style>
+/* One quiet column, the app's own night-reading look: dark green, gold, and the book mark glowing at the top. */
+:root {
+  --forest: #0F1A15;
+  --surface: #18261F;
+  --line: #233A2F;
+  --gold: #F2C76E;
+  --text: #EAF2EC;
+  --soft: #CFE3D6;
+  --muted: #A6B8AD;
+  --font: "Nunito", "Segoe UI", system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--forest); color: var(--text); font-family: var(--font); font-size: 17px; line-height: 1.6; }
+a { color: var(--gold); }
+a:focus-visible, .button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+.wrap { max-width: 760px; margin: 0 auto; padding-block: max(28px, env(safe-area-inset-top, 0px)) max(40px, env(safe-area-inset-bottom, 0px));
+  padding-left: max(20px, env(safe-area-inset-left, 0px)); padding-right: max(20px, env(safe-area-inset-right, 0px)); }
+
+header { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 20px; }
+header svg { width: 34px; height: 34px; }
+
+.hero { text-align: center; padding-block: 56px 40px; display: grid; justify-items: center; gap: 18px; }
+.hero .mark { width: 132px; height: 132px; }
+h1 { font-size: clamp(36px, 7vw, 56px); line-height: 1.05; font-weight: 900; margin: 8px 0 0; text-wrap: balance; letter-spacing: -0.01em; }
+.lede { color: var(--soft); font-size: 19px; max-width: 34em; margin: 0; text-wrap: balance; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
+.button { display: inline-flex; align-items: center; gap: 10px; border-radius: 999px; padding: 14px 24px; font-weight: 800; font-size: 17px; text-decoration: none; }
+.button.primary { background: var(--gold); color: var(--forest); }
+.button.quiet { background: var(--surface); color: var(--muted); border: 1px solid var(--line); cursor: default; }
+.button svg { width: 20px; height: 20px; }
+
+.features { list-style: none; padding: 0; margin: 24px 0 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.features li { background: var(--surface); border-radius: 18px; padding: 18px 20px; min-width: 0; }
+.features strong { display: block; font-size: 17px; font-weight: 800; margin-bottom: 2px; }
+.features span { color: var(--muted); font-size: 15px; }
+
+section { margin-top: 48px; }
+h2 { font-size: 22px; font-weight: 800; margin: 0 0 10px; }
+section p { color: var(--soft); margin: 0 0 10px; max-width: 62ch; }
+
+footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--muted); font-size: 15px; }
+footer a { color: var(--muted); }
+footer .email { user-select: all; }
+
+@media (max-width: 560px) {
+  .features { grid-template-columns: 1fr; }
+  .hero { padding-block: 36px 28px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="22 14 64 74" aria-hidden="true"><use href="#mark"/></svg>
+    Voxshelf
+  </header>
+
+  <main>
+    <div class="hero">
+      <svg class="mark" viewBox="0 0 108 108" role="img" aria-label="Voxshelf logo: an open book with sound rising from it">
+        <defs>
+          <radialGradient id="glow" cx="54" cy="50" r="40" gradientUnits="userSpaceOnUse">
+            <stop offset="0" stop-color="#F2C76E" stop-opacity=".4"/><stop offset="1" stop-color="#F2C76E" stop-opacity="0"/>
+          </radialGradient>
+          <g id="mark">
+            <path d="M54 84 C46 70 36 56 22 44 C34 40 46 44 54 56 Z" fill="#F2C76E"/>
+            <path d="M54 84 C62 70 72 56 86 44 C74 40 62 44 54 56 Z" fill="#F2C76E" opacity=".86"/>
+            <g fill="none" stroke="#F2C76E" stroke-width="4" stroke-linecap="round">
+              <path d="M45 37 A12 12 0 0 1 63 37"/>
+              <path d="M38 28 A22 22 0 0 1 70 28" opacity=".6"/>
+              <path d="M31 19 A32 32 0 0 1 77 19" opacity=".3"/>
+            </g>
+          </g>
+        </defs>
+        <circle cx="54" cy="50" r="40" fill="url(#glow)"/>
+        <use href="#mark"/>
+      </svg>
+      <h1>Free audiobooks. No ads, no account.</h1>
+      <p class="lede">Voxshelf plays over 21,000 public domain audiobooks read by LibriVox volunteers: classics, mysteries, poetry, history and more.</p>
+      <div class="actions">
+        <a class="button primary" href="https://play.google.com/store/apps/details?id=app.voxshelf">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 3.5v17a1 1 0 0 0 1.5.86l14.2-8.5a1 1 0 0 0 0-1.72L5.5 2.64A1 1 0 0 0 4 3.5Z"/></svg>
+          Get it on Google Play
+        </a>
+        <span class="button quiet">iPhone: coming soon</span>
+      </div>
+    </div>
+
+    <ul class="features">
+      <li><strong>Find something good</strong><span>Browse by subject, see what's popular, or let it surprise you.</span></li>
+      <li><strong>Pick the best recording</strong><span>Many books have several readings. See which one listeners liked.</span></li>
+      <li><strong>Listen offline</strong><span>Download a book for the plane, the trail or the subway.</span></li>
+      <li><strong>Pick up where you left off</strong><span>Your spot is saved, and the sleep timer stops when you drift off.</span></li>
+    </ul>
+
+    <section>
+      <h2>Made possible by LibriVox</h2>
+      <p>Every recording comes from <a href="https://librivox.org">LibriVox</a>, where volunteers around the world read public domain books aloud. If you enjoy the books, consider <a href="https://librivox.org/pages/how-to-help/">volunteering or donating to LibriVox</a>.</p>
+      <p>Audio and cover art are hosted by the <a href="https://archive.org">Internet Archive</a>. Book ratings come from <a href="https://openlibrary.org">Open Library</a>. Voxshelf is an independent app and isn't made or endorsed by LibriVox.</p>
+    </section>
+
+    <section>
+      <h2>Free and open source</h2>
+      <p>Voxshelf is free to use, with no ads, no tracking and no account. The code is open source under the GPL-3.0 license, so anyone can read it, improve it or build on it.</p>
+      <p><a href="https://github.com/ezlabs/voxshelf">See the code on GitHub</a></p>
+    </section>
+  </main>
+
+  <footer>
+    <a href="privacy.html">Privacy</a>
+    <a href="https://github.com/ezlabs/voxshelf">GitHub</a>
+    <span>Contact: <span class="email">hello@voxshelf.app</span></span>
+  </footer>
+</div>
+</body>
+</html>
