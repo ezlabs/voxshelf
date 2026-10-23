@@ -36,7 +36,8 @@ works = defaultdict(list)
 for b in books:
     title = b.get("title") or ""
     sections = b.get("sections") or []
-    if "do not re-use" in title.lower() or not sections:
+    # Skip placeholders and recordings still in progress (no chapter has audio yet).
+    if "do not re-use" in title.lower() or not any(s.get("listen_url") for s in sections):
         continue
     variant = VARIANT.search(title)
     base = VARIANT.sub(" ", title).strip()

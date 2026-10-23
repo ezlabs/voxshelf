@@ -254,7 +254,7 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(24.dp))
             Cover(book.title, book.authors, 190.dp, glow = true)
             Spacer(Modifier.height(18.dp))
             Text(book.title, style = text(28.sp, 800), textAlign = androidx.compose.ui.text.style.TextAlign.Center)

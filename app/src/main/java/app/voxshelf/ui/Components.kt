@@ -56,8 +56,8 @@ fun Cover(title: String, author: String, size: Dp, glow: Boolean = false) {
             .size(size)
             .drawBehind {
                 if (glow) drawCircle(
-                    Brush.radialGradient(listOf(Lantern.Gold.copy(alpha = 0.32f), Color.Transparent), radius = this.size.width * 0.85f),
-                    radius = this.size.width * 0.85f,
+                    Brush.radialGradient(listOf(Lantern.Gold.copy(alpha = 0.32f), Color.Transparent), radius = this.size.width * 0.7f),
+                    radius = this.size.width * 0.7f,
                 )
             },
         contentAlignment = Alignment.Center,

@@ -306,10 +306,11 @@ private fun NameDialog(title: String, action: String, initial: String = "", onDi
                 value = name,
                 onValueChange = { name = it },
                 singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
                 textStyle = text(17.sp, 600),
                 cursorBrush = SolidColor(Lantern.Gold),
                 decorationBox = { field ->
-                    Column(Modifier.clip(RoundedCornerShape(16.dp)).background(Lantern.Forest).padding(horizontal = 16.dp, vertical = 14.dp)) {
+                    androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Lantern.Forest).padding(horizontal = 16.dp, vertical = 14.dp)) {
                         if (name.isEmpty()) Text("List name", style = text(17.sp, 600, Lantern.TextMuted))
                         field()
                     }
