@@ -7,7 +7,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from categories import FALLBACK, classify
+from categories import candidates, flags, merge, resolve
 
 DESC_CHARS = 300
 VARIANT = re.compile(r"\s*\(([^)]*\b(?:version \d+|dramatic reading|abridged)\b[^)]*)\)\s*", re.I)
@@ -57,18 +57,19 @@ for b in books:
         "abridged": 1 if "abridged" in label else 0,
         "cover": b.get("coverart_thumbnail"),
     }
-    row.update(classify([g.get("name") or "" for g in (b.get("genres") or [])]))
+    genres = [g.get("name") or "" for g in (b.get("genres") or [])]
+    row.update(flags(genres))
+    row["_cands"] = candidates(genres)
     rows.append(row)
     works[key].append(row)
 
 for work_id, members in enumerate(works.values(), 1):
-    # Recordings of the same book share categories, so every version shows up in the same places.
-    shared = list(dict.fromkeys(c for r in members for c in r["categories"].split("|") if c))
-    if len(shared) > 1 and FALLBACK in shared:
-        shared.remove(FALLBACK)
+    # Recordings of the same book share a shelf and subjects, so every version shows up in the same places.
+    shelf, subjects = resolve(merge(r.pop("_cands") for r in members))
     for r in members:
         r["work_id"] = work_id
-        r["categories"] = "|".join(shared)
+        r["shelf"] = shelf
+        r["subjects"] = "|".join(subjects)
 
 out.unlink(missing_ok=True)
 con = sqlite3.connect(out)
@@ -76,6 +77,7 @@ cols = list(rows[0].keys())
 con.execute(f"CREATE TABLE book ({', '.join(c + (' INTEGER PRIMARY KEY' if c == 'id' else '') for c in cols)})")
 con.executemany(f"INSERT INTO book VALUES ({','.join('?' * len(cols))})", [tuple(r[c] for c in cols) for r in rows])
 con.execute("CREATE INDEX book_work ON book(work_id)")
+con.execute("CREATE INDEX book_shelf ON book(shelf)")
 con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
 con.execute("INSERT INTO meta VALUES ('version', ?)", (version,))
 con.execute("CREATE VIRTUAL TABLE book_fts USING fts5(title, authors, content='book', content_rowid='id')")
