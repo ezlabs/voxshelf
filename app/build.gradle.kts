@@ -1,7 +1,13 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
+
+// The upload key lives outside the repo (never committed). Without it, release builds are simply unsigned.
+val keystoreFile = rootProject.file("../voxshelf-keys/keystore.properties")
+val keystore = Properties().apply { if (keystoreFile.exists()) keystoreFile.inputStream().use { load(it) } }
 
 android {
     namespace = "app.voxshelf"
@@ -15,15 +21,28 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        if (keystoreFile.exists()) create("release") {
+            storeFile = file(keystore.getProperty("storeFile"))
+            storePassword = keystore.getProperty("storePassword")
+            keyAlias = keystore.getProperty("keyAlias")
+            keyPassword = keystore.getProperty("keyPassword")
+        }
+    }
+
     buildTypes {
         debug {
-            // The ratings server running on this computer, reached through "adb reverse tcp:8787 tcp:8787".
             buildConfigField("String", "RATINGS_URL", "\"https://api.voxshelf.app\"")
+            // Allows a ratings server on this computer during development (npx wrangler dev).
             manifestPlaceholders["cleartext"] = "true"
         }
         release {
-            buildConfigField("String", "RATINGS_URL", "\"\"")
+            buildConfigField("String", "RATINGS_URL", "\"https://api.voxshelf.app\"")
             manifestPlaceholders["cleartext"] = "false"
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 

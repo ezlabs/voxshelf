@@ -65,7 +65,7 @@ fun SettingsScreen() {
             Paragraph("Audio and cover art are hosted by the Internet Archive. Book ratings come from Open Library.")
             Spacer(Modifier.height(8.dp))
             Link("Visit LibriVox", "https://librivox.org")
-            Link("Volunteer or donate to LibriVox", "https://librivox.org/pages/how-to-help/")
+            Link("Volunteer with LibriVox", "https://librivox.org/pages/volunteer-for-librivox/")
             Link("Internet Archive", "https://archive.org")
             Link("Open Library", "https://openlibrary.org")
             Spacer(Modifier.height(24.dp))

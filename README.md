@@ -17,7 +17,7 @@ Website: [voxshelf.app](https://voxshelf.app)
 - **Listen anywhere:** background playback with lock screen and Bluetooth controls, downloads for offline listening (with a Wi-Fi-only option), playback speed, a sleep timer, and smart rewind after a long pause.
 - **Your shelf:** Listening, Want to listen, Finished and your own lists, with progress and time left for each book.
 
-Voxshelf is an independent app and isn't made or endorsed by LibriVox. If you enjoy the books, please consider [volunteering or donating to LibriVox](https://librivox.org/pages/how-to-help/).
+Voxshelf is an independent app and isn't made or endorsed by LibriVox. If you enjoy the books, consider [volunteering with LibriVox](https://librivox.org/pages/volunteer-for-librivox/), or [donating to the Internet Archive](https://archive.org/donate), which hosts the recordings (LibriVox itself no longer takes donations).
 
 ## How it's built
 
