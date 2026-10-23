@@ -1,6 +1,7 @@
 """Build the compact on-phone catalog: books only, trimmed descriptions, recordings grouped into works."""
 import gzip
 import datetime
+import html
 import json
 import math
 import re
@@ -11,7 +12,7 @@ from pathlib import Path
 
 from categories import candidates, flags, merge, resolve
 
-DESC_CHARS = 300
+DESC_CHARS = 20000  # effectively the whole description; only runaway ones get cut
 VARIANT = re.compile(r"\s*\(([^)]*\b(?:version \d+|dramatic reading|abridged)\b[^)]*)\)\s*", re.I)
 
 raw_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "raw")
@@ -31,9 +32,12 @@ def ol_key(title, authors):
 books = [b for f in sorted(raw_dir.glob("page_*.json")) for b in json.loads(f.read_text(encoding="utf-8"))]
 
 
-def clean_text(html):
-    text = re.sub(r"<[^>]+>", " ", html or "")
-    return re.sub(r"\s+", " ", text).strip()
+def clean_text(markup):
+    # Inline tags like <i> vanish without a gap ("<i>Emma</i>," -> "Emma,"); others become a space.
+    text = re.sub(r"</?(i|em|b|strong|a|span|u)\b[^>]*>", "", markup or "", flags=re.IGNORECASE)
+    text = html.unescape(re.sub(r"<[^>]+>", " ", text))
+    text = re.sub(r"\s+", " ", text).strip()
+    return re.sub(r" ([,.;:!?)])", r"\1", text)
 
 
 def trim(text):
