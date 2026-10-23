@@ -31,7 +31,7 @@ object LibriVox {
         val saved = File(dir, "books/$id.json")
         val body = try {
             val connection = URL("$API?id=$id&extended=1&format=json").openConnection() as HttpURLConnection
-            connection.setRequestProperty("User-Agent", "Voxshelf/0.1 (open source audiobook app)")
+            connection.setRequestProperty("User-Agent", "Voxshelf/0.1 (https://voxshelf.app; hello@voxshelf.app)")
             connection.inputStream.bufferedReader().use { it.readText() }.also {
                 saved.parentFile?.mkdirs()
                 saved.writeText(it)

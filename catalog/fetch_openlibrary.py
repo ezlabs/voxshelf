@@ -36,7 +36,7 @@ def key(title, authors):
 
 def search(params):
     params = {**params, "limit": 5, "fields": "key,title,ratings_average,ratings_count"}
-    req = urllib.request.Request(f"{API}?{urllib.parse.urlencode(params)}", headers={"User-Agent": "Voxshelf/0.1 (open source LibriVox app)"})
+    req = urllib.request.Request(f"{API}?{urllib.parse.urlencode(params)}", headers={"User-Agent": "Voxshelf/0.1 (https://voxshelf.app; hello@voxshelf.app)"})
     return json.load(urllib.request.urlopen(req, timeout=30)).get("docs", [])
 
 

@@ -73,7 +73,7 @@ class Ratings(context: Context) {
     private fun connect(path: String) = (URL(BuildConfig.RATINGS_URL + path).openConnection() as HttpURLConnection).apply {
         connectTimeout = 10_000
         readTimeout = 10_000
-        setRequestProperty("User-Agent", "Voxshelf/0.1 (open source audiobook app)")
+        setRequestProperty("User-Agent", "Voxshelf/0.1 (https://voxshelf.app; hello@voxshelf.app)")
     }
 
     private suspend fun <T> io(block: () -> T): T = withContext(Dispatchers.IO) { block() }

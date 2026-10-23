@@ -20,7 +20,7 @@ uploaded = set(Path(sys.argv[3]).read_text().split()) if len(sys.argv) > 3 and P
 
 
 def fetch(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "Voxshelf/0.1 (open source LibriVox app)"})
+    req = urllib.request.Request(url, headers={"User-Agent": "Voxshelf/0.1 (https://voxshelf.app; hello@voxshelf.app)"})
     return urllib.request.urlopen(req, timeout=60).read()
 
 

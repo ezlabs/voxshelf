@@ -40,7 +40,7 @@ sealed interface BookDownload {
 class Downloads private constructor(private val context: Context) {
     private val database = StandaloneDatabaseProvider(context)
     val cache = SimpleCache(File(context.filesDir, "audio"), NoOpCacheEvictor(), database)
-    val http: DefaultHttpDataSource.Factory = DefaultHttpDataSource.Factory().setUserAgent("Voxshelf/0.1 (open source audiobook app)")
+    val http: DefaultHttpDataSource.Factory = DefaultHttpDataSource.Factory().setUserAgent("Voxshelf/0.1 (https://voxshelf.app; hello@voxshelf.app)")
 
     val manager = DownloadManager(context, database, cache, http, Executors.newFixedThreadPool(2)).apply {
         maxParallelDownloads = 2
