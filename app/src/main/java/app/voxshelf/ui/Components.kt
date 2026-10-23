@@ -95,7 +95,7 @@ fun Cover(title: String, author: String, size: Dp, art: String? = null, glow: Bo
                 Text(author, style = text((size.value * 0.056f).sp, 600, Lantern.TextSoft), textAlign = TextAlign.Center, maxLines = 1)
             }
         }
-        if (art != null) CoverArt(art, size >= 80.dp, title, Modifier.size(size).clip(RoundedCornerShape(size * 0.15f)))
+        if (art != null) CoverArt(art, size >= 80.dp, title, Modifier.size(size).clip(RoundedCornerShape(size * 0.05f)))
     }
 }
 
