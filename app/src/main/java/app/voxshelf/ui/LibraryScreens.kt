@@ -126,7 +126,7 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
                 Modifier.fillMaxWidth().clickable { onBook(r.workId) }.padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Cover(r.title, r.authors, 100.dp, art = r.cover)
+                Cover(r.title, r.authors, 130.dp, art = r.cover)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)

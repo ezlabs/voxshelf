@@ -98,12 +98,16 @@ fun BrowseScreen(
 
         val found = results
         if (found != null) {
-            Text(
-                if (found.isEmpty()) "No books match \"$query\"" else "${found.size} books",
-                style = text(14.sp, 700, Lantern.TextMuted),
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
-            BookList(found, onBook)
+            val gallery = rememberGallery()
+            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (found.isEmpty()) "No books match \"$query\"" else "${found.size} books",
+                    style = text(14.sp, 700, Lantern.TextMuted),
+                    modifier = Modifier.weight(1f),
+                )
+                if (found.isNotEmpty()) ViewToggle(gallery)
+            }
+            BookList(found, gallery.value, onBook)
             return@Column
         }
 
@@ -199,17 +203,67 @@ fun SubjectScreen(catalog: Catalog, language: String?, shelf: String, subject: S
             }
         }
         Text(subject, style = text(28.sp, 800), modifier = Modifier.padding(horizontal = 20.dp))
-        Text(
-            listOfNotNull(shelf.ifBlank { null }, works?.let { "%,d books".format(it.size) }).joinToString(" · "),
-            style = text(14.sp, 600, Lantern.TextMuted),
-            modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 12.dp),
-        )
-        works?.let { BookList(it, onBook) }
+        val gallery = rememberGallery()
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                listOfNotNull(shelf.ifBlank { null }, works?.let { "%,d books".format(it.size) }).joinToString(" · "),
+                style = text(14.sp, 600, Lantern.TextMuted),
+                modifier = Modifier.weight(1f),
+            )
+            ViewToggle(gallery)
+        }
+        works?.let { BookList(it, gallery.value, onBook) }
+    }
+}
+
+/** Whether book lists show as a gallery of covers. Remembered between visits, shared by search and subjects. */
+@Composable
+private fun rememberGallery(): androidx.compose.runtime.MutableState<Boolean> {
+    val prefs = androidx.compose.ui.platform.LocalContext.current.getSharedPreferences("browse", android.content.Context.MODE_PRIVATE)
+    val state = remember { mutableStateOf(prefs.getBoolean("gallery", false)) }
+    androidx.compose.runtime.LaunchedEffect(state.value) { prefs.edit().putBoolean("gallery", state.value).apply() }
+    return state
+}
+
+@Composable
+private fun ViewToggle(gallery: androidx.compose.runtime.MutableState<Boolean>) {
+    Row(Modifier.clip(RoundedCornerShape(18.dp)).background(Lantern.Surface).padding(3.dp)) {
+        listOf(false to "List", true to "Gallery").forEach { (isGallery, label) ->
+            val on = gallery.value == isGallery
+            Text(
+                label,
+                style = text(13.sp, 800, if (on) Lantern.Forest else Lantern.TextSoft),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(15.dp))
+                    .background(if (on) Lantern.Gold else Lantern.Surface)
+                    .clickable(role = Role.Tab) { gallery.value = isGallery }
+                    .padding(horizontal = 12.dp, vertical = 6.dp),
+            )
+        }
     }
 }
 
 @Composable
-private fun BookList(works: List<WorkSummary>, onBook: (WorkSummary) -> Unit) {
+private fun BookList(works: List<WorkSummary>, gallery: Boolean, onBook: (WorkSummary) -> Unit) {
+    if (gallery) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(2),
+            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            items(works, key = { it.first.workId }) { work ->
+                val r = work.first
+                Column(Modifier.clickable { onBook(work) }) {
+                    androidx.compose.foundation.layout.BoxWithConstraints { Cover(r.title, r.authors, maxWidth, art = r.cover) }
+                    Spacer(Modifier.height(8.dp))
+                    Text(r.title, style = text(15.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(r.authors.ifBlank { "Various authors" }, style = text(13.sp, 600, Lantern.TextSoft), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+        }
+        return
+    }
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         items(works, key = { it.first.workId }) { work ->
             val r = work.first
