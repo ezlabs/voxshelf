@@ -95,11 +95,11 @@ fun Cover(title: String, author: String, size: Dp, art: String? = null, glow: Bo
                 Text(author, style = text((size.value * 0.056f).sp, 600, Lantern.TextSoft), textAlign = TextAlign.Center, maxLines = 1)
             }
         }
-        if (art != null) CoverArt(art, big, title, Modifier.size(size).clip(RoundedCornerShape(size * 0.15f)))
+        if (art != null) CoverArt(art, size >= 80.dp, title, Modifier.size(size).clip(RoundedCornerShape(size * 0.15f)))
     }
 }
 
-/** Big covers try the full-size art first; some recordings only have the small version. */
+/** Covers 80dp and up try the full-size art first, since the small version looks blurry there. Some recordings only have the small one. */
 @Composable
 private fun CoverArt(small: String, big: Boolean, title: String, modifier: Modifier) {
     val choices = remember(small, big) { listOfNotNull(small.replace("_thumb", "").takeIf { big && it != small }, small) }

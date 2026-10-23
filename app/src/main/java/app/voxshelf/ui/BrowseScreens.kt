@@ -220,7 +220,7 @@ private fun BookList(works: List<WorkSummary>, onBook: (WorkSummary) -> Unit) {
                     .padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Cover(r.title, r.authors, 64.dp, art = r.cover)
+                Cover(r.title, r.authors, 100.dp, art = r.cover)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
