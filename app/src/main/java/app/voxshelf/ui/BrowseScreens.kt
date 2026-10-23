@@ -266,24 +266,6 @@ private fun <T> Choices(options: List<T>, chosen: T?, label: (T) -> String, onCh
     }
 }
 
-@Composable
-private fun Toggle(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(role = Role.Switch) { onChange(!on) }.padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(label, style = text(16.sp, 600), modifier = Modifier.weight(1f))
-        androidx.compose.material3.Switch(
-            checked = on,
-            onCheckedChange = null,
-            colors = androidx.compose.material3.SwitchDefaults.colors(
-                checkedThumbColor = Lantern.Forest, checkedTrackColor = Lantern.Gold,
-                uncheckedThumbColor = Lantern.TextMuted, uncheckedTrackColor = Lantern.Surface, uncheckedBorderColor = Lantern.SurfaceHigh,
-            ),
-        )
-    }
-}
-
 /** The books matching the Filter sheet. */
 @Composable
 fun FilteredScreen(catalog: Catalog, language: String?, filters: Filters, onBack: () -> Unit, onBook: (WorkSummary) -> Unit) {

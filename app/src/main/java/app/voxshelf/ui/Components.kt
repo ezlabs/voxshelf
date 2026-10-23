@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,6 +31,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
@@ -211,5 +213,24 @@ fun AuthorLine(r: app.voxshelf.Recording, size: androidx.compose.ui.unit.TextUni
             modifier = Modifier.weight(1f, fill = false),
         )
         r.year?.let { Text(" · $it", style = text(size, 600, Lantern.TextSoft), maxLines = 1) }
+    }
+}
+
+/** A labelled on/off switch row. */
+@Composable
+fun Toggle(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(role = Role.Switch) { onChange(!on) }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = text(16.sp, 600), modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(
+            checked = on,
+            onCheckedChange = null,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = Lantern.Forest, checkedTrackColor = Lantern.Gold,
+                uncheckedThumbColor = Lantern.TextMuted, uncheckedTrackColor = Lantern.Surface, uncheckedBorderColor = Lantern.SurfaceHigh,
+            ),
+        )
     }
 }

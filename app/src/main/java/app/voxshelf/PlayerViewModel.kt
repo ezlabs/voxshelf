@@ -10,7 +10,6 @@ import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +25,20 @@ enum class SleepTimer(val label: String, val minutes: Int?) {
     Thirty("30 minutes", 30),
     Sixty("1 hour", 60),
     EndOfChapter("End of chapter", null),
+}
+
+/**
+ * The sleep timer the playback service enforces, so it keeps working after the app's screen is closed.
+ * [endAt] is when a timed sleep pauses playback (wall clock), or null.
+ */
+object Sleep {
+    data class Setting(val timer: SleepTimer = SleepTimer.Off, val endAt: Long? = null)
+
+    val setting = MutableStateFlow(Setting())
+
+    fun set(timer: SleepTimer) {
+        setting.value = Setting(timer, timer.minutes?.let { System.currentTimeMillis() + it * 60_000L })
+    }
 }
 
 data class PlayerState(
@@ -61,7 +74,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<PlayerState> = _state.asStateFlow()
 
     private var controller: MediaController? = null
-    private var sleepJob: Job? = null
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = refresh()
@@ -86,12 +98,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             }
         }
 
-        override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
-            if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && _state.value.sleepTimer == SleepTimer.EndOfChapter) {
-                controller?.pause()
-                setSleepTimer(SleepTimer.Off)
-            }
-        }
     }
 
     init {
@@ -160,6 +166,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 durationMs = p.duration.takeIf { d -> d > 0 }
                     ?: ((it.book?.chapters?.getOrNull(p.currentMediaItemIndex)?.seconds ?: 0) * 1000L),
                 speed = p.playbackParameters.speed,
+                sleepTimer = Sleep.setting.value.timer,
+                sleepRemainingMs = Sleep.setting.value.endAt?.let { end -> (end - System.currentTimeMillis()).coerceAtLeast(0) },
             )
         }
     }
@@ -200,22 +208,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setSleepTimer(timer: SleepTimer) {
-        sleepJob?.cancel()
-        _state.update { it.copy(sleepTimer = timer, sleepRemainingMs = timer.minutes?.let { m -> m * 60_000L }) }
-        val minutes = timer.minutes ?: return
-        sleepJob = viewModelScope.launch {
-            val endAt = System.currentTimeMillis() + minutes * 60_000L
-            while (isActive) {
-                val left = endAt - System.currentTimeMillis()
-                if (left <= 0) {
-                    controller?.pause()
-                    _state.update { it.copy(sleepTimer = SleepTimer.Off, sleepRemainingMs = null) }
-                    break
-                }
-                _state.update { it.copy(sleepRemainingMs = left) }
-                delay(1_000)
-            }
-        }
+        Sleep.set(timer)
+        refresh()
     }
 
     override fun onCleared() {

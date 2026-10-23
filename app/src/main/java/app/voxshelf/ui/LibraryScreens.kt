@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
 private const val LISTS_TAB = "Lists"
 
 @Composable
-fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> Unit, onList: (UserList) -> Unit, onBrowse: () -> Unit) {
+fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> Unit, onList: (UserList) -> Unit, onBrowse: () -> Unit, onSettings: () -> Unit) {
     val tabs = Status.entries.map { it.label } + LISTS_TAB
     var tab by rememberSaveable { mutableStateOf(tabs.first()) }
     val changes by library.changes.collectAsState()
@@ -63,7 +63,24 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
     val scope = rememberCoroutineScope()
 
     Column(Modifier.fillMaxSize()) {
-        Text("Library", style = text(30.sp, 800), modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 12.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Library", style = text(30.sp, 800))
+            // Gear: eight short spokes around a ring.
+            IconCircle("Settings", onSettings) { u ->
+                val c = androidx.compose.ui.geometry.Offset(12 * u, 12 * u)
+                repeat(8) { i ->
+                    val a = Math.toRadians(i * 45.0)
+                    val dir = androidx.compose.ui.geometry.Offset(kotlin.math.cos(a).toFloat(), kotlin.math.sin(a).toFloat())
+                    drawLine(Lantern.Text, c + dir * (7.5f * u), c + dir * (10.5f * u), 2.6f * u, androidx.compose.ui.graphics.StrokeCap.Round)
+                }
+                drawCircle(Lantern.Text, 6.5f * u, c, style = androidx.compose.ui.graphics.drawscope.Stroke(2.2f * u))
+                drawCircle(Lantern.Text, 2.2f * u, c, style = androidx.compose.ui.graphics.drawscope.Stroke(2f * u))
+            }
+        }
         Row(Modifier.horizontalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             tabs.forEach { Pill(it, selected = it == tab) { tab = it } }
         }
@@ -285,6 +302,7 @@ private fun DownloadPill(book: Recording) {
     when (val s = status) {
         BookDownload.None -> Pill(if (starting) "Downloading…" else "Download") { if (!starting) start() }
         is BookDownload.Downloading -> Pill("Downloading ${s.percent}%") { removing = true }
+        BookDownload.WaitingForWifi -> Pill("Waiting for Wi-Fi") { removing = true }
         BookDownload.Done -> Pill("Downloaded ✓", selected = true) { removing = true }
         BookDownload.Failed -> Pill("Download failed. Retry") { downloads.remove(book.id); start() }
     }

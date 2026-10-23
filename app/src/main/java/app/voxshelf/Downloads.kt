@@ -15,6 +15,8 @@ import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import androidx.media3.exoplayer.offline.DownloadRequest
 import androidx.media3.exoplayer.offline.DownloadService
+import androidx.media3.exoplayer.scheduler.PlatformScheduler
+import androidx.media3.exoplayer.scheduler.Requirements
 import androidx.media3.exoplayer.scheduler.Scheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -25,6 +27,7 @@ import java.util.concurrent.Executors
 sealed interface BookDownload {
     data object None : BookDownload
     data class Downloading(val percent: Int) : BookDownload
+    data object WaitingForWifi : BookDownload
     data object Done : BookDownload
     data object Failed : BookDownload
 }
@@ -41,7 +44,21 @@ class Downloads private constructor(private val context: Context) {
 
     val manager = DownloadManager(context, database, cache, http, Executors.newFixedThreadPool(2)).apply {
         maxParallelDownloads = 2
+        requirements = requirementsFor(wifiOnly)
     }
+
+    /** When on, downloads wait for Wi-Fi (or any network that isn't metered). Off by default. */
+    var wifiOnly: Boolean
+        get() = prefs.getBoolean("wifiOnly", false)
+        set(value) {
+            prefs.edit().putBoolean("wifiOnly", value).apply()
+            DownloadService.sendSetRequirements(context, VoxDownloadService::class.java, requirementsFor(value), false)
+        }
+
+    private val prefs get() = context.getSharedPreferences("downloads", Context.MODE_PRIVATE)
+
+    private fun requirementsFor(wifiOnly: Boolean) =
+        Requirements(if (wifiOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK)
 
     /** Plays saved chapters from the phone and streams the rest without saving them. */
     val playerSource: CacheDataSource.Factory = CacheDataSource.Factory()
@@ -68,6 +85,8 @@ class Downloads private constructor(private val context: Context) {
             all.isEmpty() -> BookDownload.None
             all.all { it.state == Download.STATE_COMPLETED } -> BookDownload.Done
             all.any { it.state == Download.STATE_FAILED } -> BookDownload.Failed
+            manager.notMetRequirements and Requirements.NETWORK_UNMETERED != 0 &&
+                all.none { it.state == Download.STATE_DOWNLOADING } -> BookDownload.WaitingForWifi
             else -> BookDownload.Downloading(
                 (all.sumOf { if (it.state == Download.STATE_COMPLETED) 100.0 else it.percentDownloaded.coerceAtLeast(0f).toDouble() } / all.size).toInt()
             )
@@ -93,12 +112,14 @@ class VoxDownloadService : DownloadService(1, DEFAULT_FOREGROUND_NOTIFICATION_UP
 
     override fun getDownloadManager() = Downloads.get(this).manager
 
-    override fun getScheduler(): Scheduler? = null
+    // Lets Android restart waiting downloads (for example when Wi-Fi comes back) even if the app is closed.
+    override fun getScheduler(): Scheduler = PlatformScheduler(this, JOB_ID)
 
     override fun getForegroundNotification(downloads: MutableList<Download>, notMetRequirements: Int): Notification =
         notifications.buildProgressNotification(this, android.R.drawable.stat_sys_download, null, getString(R.string.downloading), downloads, notMetRequirements)
 
     private companion object {
+        const val JOB_ID = 1
         const val CHANNEL = "downloads"
     }
 }

@@ -49,6 +49,7 @@ private sealed interface Screen {
     data class Book(val workId: Int) : Screen
     data class Collection(val collection: app.voxshelf.Collection, val shuffle: Long = System.nanoTime()) : Screen
     data class Filtered(val filters: app.voxshelf.Filters) : Screen
+    data object Settings : Screen
     data object Player : Screen
     data class List(val list: UserList) : Screen
 }
@@ -66,6 +67,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
     var filters by remember { mutableStateOf(app.voxshelf.Filters()) }
     var language by remember { mutableStateOf(catalog.language) }
     val playerState by player.state.collectAsStateWithLifecycle()
+    val askNotifications = rememberAskNotifications()
 
     // When a book ends, ask once how the recording was, wherever you are in the app.
     playerState.book?.let { book ->
@@ -85,6 +87,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                             onBook = { stack += Screen.Book(it) },
                             onList = { stack += Screen.List(it) },
                             onBrowse = { tab = Tab.Browse },
+                            onSettings = { stack += Screen.Settings },
                         ) else BrowseScreen(
                             catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },
@@ -120,10 +123,12 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                             catalog, library, screen.workId, playerState.book?.id,
                             onBack = { stack.removeAt(stack.lastIndex) },
                             onPlay = {
+                                askNotifications()
                                 player.open(it.id)
                                 stack += Screen.Player
                             },
                         )
+                        Screen.Settings -> SettingsScreen(onBack = { stack.removeAt(stack.lastIndex) })
                         Screen.Player -> Unit
                     }
                 }
@@ -135,12 +140,33 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                         chapter = book.chapters.getOrNull(playerState.chapter)?.title.orEmpty(),
                         isPlaying = playerState.isPlaying,
                         onOpen = { stack += Screen.Player },
-                        onPlayPause = player::playPause,
+                        onPlayPause = {
+                            askNotifications()
+                            player.playPause()
+                        },
                     )
                 }
                 if (screen == null) TabBar(tab) { tab = it }
             }
         }
+    }
+}
+
+/**
+ * Android 13+ needs permission to show the playback notification and lock screen controls.
+ * We ask the first time you press play, when it's clear what the notification is for.
+ */
+@Composable
+private fun rememberAskNotifications(): () -> Unit {
+    val context = LocalContext.current
+    val launcher = androidx.activity.compose.rememberLauncherForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestPermission(),
+    ) {}
+    return {
+        val permission = android.Manifest.permission.POST_NOTIFICATIONS
+        if (android.os.Build.VERSION.SDK_INT >= 33 &&
+            context.checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED
+        ) launcher.launch(permission)
     }
 }
 

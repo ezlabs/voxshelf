@@ -20,6 +20,18 @@ class PlaybackService : MediaSessionService() {
     private lateinit var positions: PositionStore
     private val handler = Handler(Looper.getMainLooper())
 
+    // Checks the sleep timer every second while playing; the service runs even when the app's screen is closed.
+    private val sleepTick = object : Runnable {
+        override fun run() {
+            val end = Sleep.setting.value.endAt
+            if (end != null && System.currentTimeMillis() >= end) {
+                session?.player?.pause()
+                Sleep.set(SleepTimer.Off)
+            }
+            handler.postDelayed(this, 1_000)
+        }
+    }
+
     private val saveTick = object : Runnable {
         override fun run() {
             session?.player?.let { savePosition(it) }
@@ -48,11 +60,21 @@ class PlaybackService : MediaSessionService() {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 savePosition(player)
                 handler.removeCallbacks(saveTick)
-                if (isPlaying) handler.postDelayed(saveTick, SAVE_EVERY_MS)
+                handler.removeCallbacks(sleepTick)
+                if (isPlaying) {
+                    // A timer that ran out while paused is stale: drop it rather than pausing again right away.
+                    Sleep.setting.value.endAt?.let { if (System.currentTimeMillis() >= it) Sleep.set(SleepTimer.Off) }
+                    handler.postDelayed(saveTick, SAVE_EVERY_MS)
+                    handler.post(sleepTick)
+                }
             }
 
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 savePosition(player)
+                if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Sleep.setting.value.timer == SleepTimer.EndOfChapter) {
+                    player.pause()
+                    Sleep.set(SleepTimer.Off)
+                }
             }
         })
         session = MediaSession.Builder(this, player).build()
@@ -72,6 +94,7 @@ class PlaybackService : MediaSessionService() {
 
     override fun onDestroy() {
         handler.removeCallbacks(saveTick)
+        handler.removeCallbacks(sleepTick)
         session?.run {
             savePosition(player)
             player.release()
