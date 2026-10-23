@@ -26,15 +26,12 @@ import app.voxshelf.Downloads
 
 /** Settings and credits: the Wi-Fi-only download switch, and who makes the books possible. */
 @Composable
-fun SettingsScreen(onBack: () -> Unit) {
+fun SettingsScreen() {
     val downloads = Downloads.get(LocalContext.current)
     var wifiOnly by remember { mutableStateOf(downloads.wifiOnly) }
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            IconCircle("Back", onBack) { u -> chevron(u, down = false) }
-        }
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
-            Text("Settings", style = text(28.sp, 800))
+            Text("Settings", style = text(30.sp, 800), modifier = Modifier.padding(top = 12.dp))
             Spacer(Modifier.height(20.dp))
             Text("Downloads", style = text(17.sp, 800))
             Spacer(Modifier.height(4.dp))

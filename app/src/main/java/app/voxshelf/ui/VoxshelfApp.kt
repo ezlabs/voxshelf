@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,6 +32,8 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,12 +52,11 @@ private sealed interface Screen {
     data class Book(val workId: Int) : Screen
     data class Collection(val collection: app.voxshelf.Collection, val shuffle: Long = System.nanoTime()) : Screen
     data class Filtered(val filters: app.voxshelf.Filters) : Screen
-    data object Settings : Screen
     data object Player : Screen
     data class List(val list: UserList) : Screen
 }
 
-private enum class Tab(val label: String) { Library("Library"), Browse("Browse") }
+private enum class Tab(val label: String) { Library("Shelf"), Browse("Browse"), Settings("Settings") }
 
 @Composable
 fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
@@ -82,12 +84,11 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
             else -> Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 Box(Modifier.weight(1f)) {
                     when (screen) {
-                        null -> if (tab == Tab.Library) LibraryScreen(
+                        null -> if (tab == Tab.Settings) SettingsScreen() else if (tab == Tab.Library) LibraryScreen(
                             catalog, library,
                             onBook = { stack += Screen.Book(it) },
                             onList = { stack += Screen.List(it) },
                             onBrowse = { tab = Tab.Browse },
-                            onSettings = { stack += Screen.Settings },
                         ) else BrowseScreen(
                             catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },
@@ -128,7 +129,6 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                                 stack += Screen.Player
                             },
                         )
-                        Screen.Settings -> SettingsScreen(onBack = { stack.removeAt(stack.lastIndex) })
                         Screen.Player -> Unit
                     }
                 }
@@ -175,17 +175,52 @@ private fun TabBar(current: Tab, onSelect: (Tab) -> Unit) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
         Tab.entries.forEach { t ->
             val selected = t == current
-            Text(
-                t.label,
-                style = text(15.sp, 800, if (selected) Lantern.Gold else Lantern.TextMuted),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                modifier = Modifier
+            val color = if (selected) Lantern.Gold else Lantern.TextMuted
+            Column(
+                Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(20.dp))
                     .background(if (selected) Lantern.Surface else Lantern.Forest)
                     .clickable { onSelect(t) }
-                    .padding(vertical = 12.dp),
-            )
+                    .padding(vertical = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Canvas(Modifier.size(24.dp)) {
+                    val u = size.width / 24f
+                    val line = Stroke(2f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round)
+                    when (t) {
+                        // Three books standing on a shelf, the last one leaning.
+                        Tab.Library -> {
+                            drawRoundRect(color, Offset(4 * u, 5 * u), Size(4 * u, 14 * u), CornerRadius(u), style = line)
+                            drawRoundRect(color, Offset(10 * u, 7 * u), Size(4 * u, 12 * u), CornerRadius(u), style = line)
+                            rotate(18f, Offset(18 * u, 19 * u)) {
+                                drawRoundRect(color, Offset(16 * u, 7 * u), Size(4 * u, 12 * u), CornerRadius(u), style = line)
+                            }
+                            drawLine(color, Offset(2 * u, 21 * u), Offset(22 * u, 21 * u), 2f * u, androidx.compose.ui.graphics.StrokeCap.Round)
+                        }
+                        // A gear: eight short spokes around a ring.
+                        Tab.Settings -> {
+                            val c = Offset(12 * u, 12 * u)
+                            repeat(8) { i ->
+                                val a = Math.toRadians(i * 45.0)
+                                val dir = Offset(kotlin.math.cos(a).toFloat(), kotlin.math.sin(a).toFloat())
+                                drawLine(color, c + dir * (7.5f * u), c + dir * (10.5f * u), 2.8f * u, androidx.compose.ui.graphics.StrokeCap.Round)
+                            }
+                            drawCircle(color, 6.5f * u, c, style = line)
+                            drawCircle(color, 2.2f * u, c, style = line)
+                        }
+                        // A compass: a ring with a diamond needle.
+                        Tab.Browse -> {
+                            drawCircle(color, 9 * u, Offset(12 * u, 12 * u), style = line)
+                            drawPath(Path().apply {
+                                moveTo(15.5f * u, 8.5f * u); lineTo(13.4f * u, 13.4f * u); lineTo(8.5f * u, 15.5f * u); lineTo(10.6f * u, 10.6f * u); close()
+                            }, color)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(t.label, style = text(13.sp, 800, color))
+            }
         }
     }
 }
