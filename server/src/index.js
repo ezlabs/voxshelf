@@ -1,6 +1,7 @@
 /**
  * Voxshelf ratings: thumbs up or down on a LibriVox recording, plus optional problem reports.
  * POST /ratings saves (or replaces) one phone's rating. GET /ratings?ids=1,2 returns totals.
+ * Also serves small copies of LibriVox cover art: GET /covers/123.webp (PUT with the upload key adds one).
  */
 const PROBLEMS = ["sound", "hard_to_follow", "missing", "wont_play", "order", "other"];
 // Totals stay hidden until a recording has this many ratings, so one rating can't define it.
@@ -9,6 +10,8 @@ const MIN_RATINGS = 3;
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const cover = url.pathname.match(/^\/covers\/(\d+)\.webp$/);
+    if (cover) return covers(request, env, `${cover[1]}.webp`);
     if (url.pathname !== "/ratings") return json({ error: "not found" }, 404);
     try {
       if (request.method === "POST") return await save(await request.json(), env);
@@ -54,4 +57,24 @@ async function totals(ids, env) {
 
 function json(data, status = 200, headers = {}) {
   return new Response(JSON.stringify(data), { status, headers: { "Content-Type": "application/json", ...headers } });
+}
+
+async function covers(request, env, key) {
+  if (request.method === "PUT") {
+    if (!env.UPLOAD_KEY || request.headers.get("x-upload-key") !== env.UPLOAD_KEY) return json({ error: "forbidden" }, 403);
+    await env.COVERS.put(key, request.body, { httpMetadata: { contentType: "image/webp" } });
+    return json({ ok: true });
+  }
+  if (request.method !== "GET") return json({ error: "method not allowed" }, 405);
+  // Covers never change, so keep them in Cloudflare's cache near the phone and on the phone itself.
+  const cache = caches.default;
+  const hit = await cache.match(request);
+  if (hit) return hit;
+  const object = await env.COVERS.get(key);
+  if (!object) return new Response("not found", { status: 404 });
+  const response = new Response(object.body, {
+    headers: { "content-type": "image/webp", "cache-control": "public, max-age=31536000, immutable" },
+  });
+  await cache.put(request, response.clone());
+  return response;
 }

@@ -11,3 +11,5 @@ local.properties
 app/src/main/assets/catalog.db
 catalog/popularity.json
 catalog/openlibrary.json
+catalog/covers/
+catalog/uploaded.txt

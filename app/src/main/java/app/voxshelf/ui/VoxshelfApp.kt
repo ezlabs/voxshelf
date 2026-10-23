@@ -166,7 +166,7 @@ private fun TabBar(current: Tab, onSelect: (Tab) -> Unit) {
 
 /** The "now playing" bar at the bottom of every screen, so you can always get back to your book. */
 @Composable
-private fun MiniPlayer(title: String, art: String?, chapter: String, isPlaying: Boolean, onOpen: () -> Unit, onPlayPause: () -> Unit) {
+private fun MiniPlayer(title: String, art: app.voxshelf.Art?, chapter: String, isPlaying: Boolean, onOpen: () -> Unit, onPlayPause: () -> Unit) {
     Row(
         Modifier
             .padding(horizontal = 12.dp, vertical = 8.dp)

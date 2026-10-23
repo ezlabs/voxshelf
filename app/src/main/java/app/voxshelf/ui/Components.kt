@@ -57,7 +57,7 @@ fun coverColor(title: String) = coverTones[title.hashCode().absoluteValue % cove
  * author shows while it loads, and stays if there's no art or it can't load.
  */
 @Composable
-fun Cover(title: String, author: String, size: Dp, art: String? = null, glow: Boolean = false) {
+fun Cover(title: String, author: String, size: Dp, art: app.voxshelf.Art? = null, glow: Boolean = false) {
     val big = size >= 160.dp
     Box(
         Modifier
@@ -101,41 +101,32 @@ fun Cover(title: String, author: String, size: Dp, art: String? = null, glow: Bo
 }
 
 /**
- * The small art (150px) shows first because it arrives sooner. Covers 80dp and up then lay the full-size art
- * over it, since the small one looks blurry there. Some recordings only have the small one; then it just stays.
+ * Tries the fast copy on the Voxshelf server first. If it's missing, falls back to LibriVox's art:
+ * full size on covers 80dp and up (the small one looks blurry there), then the small one.
  */
 @Composable
-private fun CoverArt(small: String, big: Boolean, title: String, modifier: Modifier) {
-    Box(modifier) {
-        coil3.compose.AsyncImage(
-            model = small,
-            contentDescription = "Cover of $title",
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-            modifier = Modifier.matchParentSize(),
-        )
-        val full = fullCover(small)
-        if (big && full != small) coil3.compose.AsyncImage(
-            model = full,
-            contentDescription = null,
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-            modifier = Modifier.matchParentSize(),
-        )
-    }
+private fun CoverArt(art: app.voxshelf.Art, big: Boolean, title: String, modifier: Modifier) {
+    val choices = remember(art, big) { listOfNotNull(art.fast, art.full.takeIf { big && it != art.thumb }, art.thumb) }
+    var tried by remember(choices) { mutableIntStateOf(0) }
+    coil3.compose.AsyncImage(
+        model = choices[tried],
+        contentDescription = "Cover of $title",
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        onError = { if (tried < choices.lastIndex) tried++ },
+        modifier = modifier,
+    )
 }
-
-fun fullCover(small: String) = small.replace("_thumb", "")
 
 /** Starts loading the covers of the next few books past [lastVisible], so they're ready when you scroll to them. */
 @Composable
-fun PrefetchCovers(works: List<app.voxshelf.WorkSummary>, big: Boolean = true, lastVisible: () -> Int) {
+fun PrefetchCovers(works: List<app.voxshelf.WorkSummary>, lastVisible: () -> Int) {
     val context = androidx.compose.ui.platform.LocalContext.current
     // Watched outside composition, so scrolling doesn't redraw the list.
     androidx.compose.runtime.LaunchedEffect(works) {
         val loader = coil3.SingletonImageLoader.get(context)
         androidx.compose.runtime.snapshotFlow(lastVisible).collect { last ->
-            works.drop(last + 1).take(PREFETCH).mapNotNull { it.first.cover }.forEach { small ->
-            loader.enqueue(coil3.request.ImageRequest.Builder(context).data(small).build())
-                if (big) loader.enqueue(coil3.request.ImageRequest.Builder(context).data(fullCover(small)).build())
+            works.drop(last + 1).take(PREFETCH).mapNotNull { it.first.cover }.forEach { art ->
+                loader.enqueue(coil3.request.ImageRequest.Builder(context).data(art.fast).build())
             }
         }
     }

@@ -6,3 +6,7 @@ compatibility_date = "2026-09-01"
 binding = "DB"
 database_name = "voxshelf-ratings"
 database_id = "5c081283-d64f-4871-bcc1-ffb27db02882"
+
+[[r2_buckets]]
+binding = "COVERS"
+bucket_name = "voxshelf-covers"

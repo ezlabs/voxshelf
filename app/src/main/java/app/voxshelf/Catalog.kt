@@ -26,8 +26,8 @@ data class Recording(
     val subjects: List<String>,
     val language: String,
     val downloads: Int,
-    /** LibriVox cover art (small version), or null if the recording has none. */
-    val cover: String?,
+    /** Cover art, or null if the recording has none. */
+    val cover: Art?,
     /** Best guess at the year the book was written (shared by all its recordings), if known. */
     val year: Int?,
     /** The year LibriVox released this recording, if known. */
@@ -36,6 +36,19 @@ data class Recording(
     val olRating: Double?,
     val olCount: Int?,
 )
+
+/**
+ * A recording's cover: a small copy on the Voxshelf server loads fast, and LibriVox's own art
+ * (small [thumb] and full size) is the fallback for covers the server doesn't have yet.
+ */
+data class Art(val id: Int, val thumb: String) {
+    val fast get() = "$COVERS/$id.webp"
+    val full get() = thumb.replace("_thumb", "")
+
+    companion object {
+        const val COVERS = "https://voxshelf-ratings.beneichholz9.workers.dev/covers"
+    }
+}
 
 /** A book in a list: its first recording stands in for the rest. */
 enum class Sort(val label: String, val sql: String) {
@@ -226,7 +239,7 @@ class Catalog(private val context: Context) {
             subjects = str("subjects").split('|').filter(String::isNotBlank),
             language = str("language"),
             downloads = int("downloads"),
-            cover = str("cover").ifBlank { null },
+            cover = str("cover").ifBlank { null }?.let { Art(int("id"), it) },
             year = int("year").takeIf { it > 0 },
             recorded = int("recorded").takeIf { it > 0 },
             // Optional: older catalogs don't have Open Library ratings.
