@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Voxshelf lantern (same shape as on generated covers), scaled into the 108dp adaptive icon's safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:scaleX="2.2" android:scaleY="2.2" android:translateX="27.6" android:translateY="27.6">
+        <!-- soft glow behind the flame -->
+        <path android:fillColor="#33F2C76E" android:pathData="M12,12.5m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
+        <path android:strokeColor="#F2C76E" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M9,3L15,3" />
+        <path android:strokeColor="#F2C76E" android:strokeWidth="1.6" android:pathData="M11,6L13,6A4,4 0,0 1,17 10L17,15A4,4 0,0 1,13 19L11,19A4,4 0,0 1,7 15L7,10A4,4 0,0 1,11 6Z" />
+        <path android:strokeColor="#F2C76E" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M12,11L12,15" />
+    </group>
+</vector>
