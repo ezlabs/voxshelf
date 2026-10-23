@@ -5,7 +5,7 @@ compatibility_date = "2026-09-01"
 routes = [{ pattern = "api.voxshelf.app", custom_domain = true }]
 
 [vars]
-GITHUB_REPO = "ezlabs/voxshelf"
+GITHUB_REPO = "ezlabs/voxshelf-reports"  # private: problem reports can include listener notes
 
 [[d1_databases]]
 binding = "DB"

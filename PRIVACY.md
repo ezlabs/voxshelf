@@ -10,7 +10,7 @@ Your library, lists, listening progress, downloads and settings are stored only 
 
 ## What the app sends
 
-**Ratings and problem reports.** When you rate a recording, the app sends your thumbs up or down, any problems you tick, any note you write, and the chapter you were on. Each phone gets a random ID so it can only rate a recording once; the ID isn't linked to your name, email or Google account. Other people only ever see totals, like "92% liked". Notes are never shown in the app. Problem reports (the problems you tick and your note) are copied to the Voxshelf project's issue tracker on GitHub so they can be fixed.
+**Ratings and problem reports.** When you rate a recording, the app sends your thumbs up or down, any problems you tick, any note you write, and the chapter you were on. Each phone gets a random ID so it can only rate a recording once; the ID isn't linked to your name, email or Google account. Other people only ever see totals, like "92% liked". Notes are never shown in the app. Problem reports (the problems you tick and your note) are copied to a private issue tracker on GitHub, which only the developer can see, so they can be fixed. Crash reports go there too.
 
 **Crash reports.** If the app crashes, the next time you open it, it sends a description of the error, the app version, your Android version and your phone model. Nothing about you or what you were listening to is included.
 

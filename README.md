@@ -54,7 +54,11 @@ python build_catalog.py raw catalog.db 20261023 popularity.json openlibrary.json
 
 ## Privacy
 
-Voxshelf collects almost nothing: anonymous recording ratings, optional problem reports, and crash reports without personal details. The full policy is in [PRIVACY.md](PRIVACY.md) and at [voxshelf.app/privacy](https://voxshelf.app/privacy.html).
+Voxshelf collects almost nothing: anonymous recording ratings, optional problem reports, and crash reports without personal details. Problem and crash reports go to a separate private repo. The full policy is in [PRIVACY.md](PRIVACY.md) and at [voxshelf.app/privacy](https://voxshelf.app/privacy.html).
+
+## Built with AI
+
+Voxshelf is developed with a lot of help from AI. Much of the code was written by an AI coding assistant (Anthropic's Claude), with a person directing the work, deciding on the design, and reviewing and testing the changes. If you spot something that looks wrong, please open an issue.
 
 ## Contributing
 
