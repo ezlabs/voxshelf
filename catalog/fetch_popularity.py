@@ -1,4 +1,4 @@
-"""Download Internet Archive download counts for every LibriVox recording (all-time, last month, last week)."""
+"""Download Internet Archive download counts for every LibriVox recording (all-time, last month, last week) and when each was published."""
 import json
 import sys
 import time
@@ -12,7 +12,7 @@ out = Path(sys.argv[1] if len(sys.argv) > 1 else "popularity.json")
 counts = {}
 cursor = None
 while True:
-    params = {"fields": "identifier,downloads,month,week", "q": "collection:librivoxaudio", "count": 10000}
+    params = {"fields": "identifier,downloads,month,week,publicdate", "q": "collection:librivoxaudio", "count": 10000}
     if cursor:
         params["cursor"] = cursor
     req = urllib.request.Request(f"{API}?{urllib.parse.urlencode(params)}",
@@ -20,7 +20,7 @@ while True:
     with urllib.request.urlopen(req, timeout=120) as resp:
         data = json.load(resp)
     for item in data.get("items", []):
-        counts[item["identifier"]] = [item.get("downloads", 0), item.get("month", 0), item.get("week", 0)]
+        counts[item["identifier"]] = [item.get("downloads", 0), item.get("month", 0), item.get("week", 0), item.get("publicdate", "")]
     cursor = data.get("cursor")
     print(f"{len(counts)} of {data.get('total')}", flush=True)
     if not cursor:

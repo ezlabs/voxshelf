@@ -318,7 +318,7 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
             Spacer(Modifier.height(18.dp))
             Text(book.title, style = text(28.sp, 800), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Text(
-                listOfNotNull(book.authors.ifBlank { null }, book.era).joinToString(" · "),
+                listOfNotNull(book.authors.ifBlank { null }, book.year?.toString() ?: book.era).joinToString(" · "),
                 style = text(15.sp, 400, Lantern.TextMuted),
             )
             if (book.mature) {
@@ -357,7 +357,7 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
                         Column(Modifier.weight(1f)) {
                             Text(r.readers.ifBlank { "LibriVox volunteers" }, style = text(15.sp, 700))
                             Text(
-                                listOfNotNull(readerLabel(r), length(r.seconds), "${r.chapters} chapters").joinToString(" · "),
+                                listOfNotNull(readerLabel(r), length(r.seconds), "${r.chapters} chapters", r.recorded?.let { "Recorded $it" }).joinToString(" · "),
                                 style = text(13.sp, 400, Lantern.TextMuted),
                             )
                             Text(ratingLine(summaries[r.id]), style = text(13.sp, 400, Lantern.TextMuted))

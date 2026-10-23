@@ -67,7 +67,16 @@ for b in books:
     }
     # Internet Archive download counts: all-time and last month.
     archive_id = (b.get("url_iarchive") or "").rstrip("/").rsplit("/", 1)[-1]
-    row["downloads"], row["month"] = (popularity.get(archive_id) or [0, 0, 0])[:2]
+    pop = popularity.get(archive_id) or [0, 0, 0, ""]
+    row["downloads"], row["month"] = pop[:2]
+    # The year LibriVox released the recording: from the Internet Archive, or the YYMM in the archive id.
+    released = (pop[3] if len(pop) > 3 else "")[:4]
+    if not released and (m := re.search(r"_(\d{2})(\d{2})_librivox", archive_id)) and 1 <= int(m.group(2)) <= 12:
+        released = f"20{m.group(1)}"
+    row["recorded"] = int(released) if released.isdigit() else None
+    # The year of the edition the volunteer read from; the work's year is worked out below.
+    year = str(b.get("copyright_year") or "")
+    row["_year"] = int(year) if year.isdigit() and 0 < int(year) else None
     genres = [g.get("name") or "" for g in (b.get("genres") or [])]
     row.update(flags(genres))
     row["_cands"] = candidates(genres)
@@ -79,10 +88,16 @@ for work_id, members in enumerate(works.values(), 1):
     shelf, subjects = resolve(merge(r.pop("_cands") for r in members))
     work_downloads = sum(r["downloads"] for r in members)
     work_month = sum(r["month"] for r in members)
+    # Volunteers often read a later reprint, so the earliest year across recordings is the best guess at
+    # when the book was written. Drop years after a recording was made, which can't be right.
+    years = [r["_year"] for r in members if r["_year"] and (not r["recorded"] or r["_year"] <= r["recorded"])]
+    work_year = min(years) if years else None
     for r in members:
         r["work_id"] = work_id
         r["work_downloads"] = work_downloads
         r["work_month"] = work_month
+        r["year"] = work_year
+        r.pop("_year")
         r["shelf"] = shelf
         r["subjects"] = "|".join(subjects)
 

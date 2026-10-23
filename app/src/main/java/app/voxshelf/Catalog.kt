@@ -28,6 +28,10 @@ data class Recording(
     val downloads: Int,
     /** LibriVox cover art (small version), or null if the recording has none. */
     val cover: String?,
+    /** Best guess at the year the book was written (shared by all its recordings), if known. */
+    val year: Int?,
+    /** The year LibriVox released this recording, if known. */
+    val recorded: Int?,
 )
 
 /** A book in a list: its first recording stands in for the rest. */
@@ -147,6 +151,8 @@ class Catalog(private val context: Context) {
             language = str("language"),
             downloads = int("downloads"),
             cover = str("cover").ifBlank { null },
+            year = int("year").takeIf { it > 0 },
+            recorded = int("recorded").takeIf { it > 0 },
         )
     }
 
