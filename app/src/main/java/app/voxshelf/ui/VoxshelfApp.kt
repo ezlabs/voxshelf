@@ -48,6 +48,7 @@ private sealed interface Screen {
     data class Subject(val shelf: String, val name: String) : Screen
     data class Book(val workId: Int) : Screen
     data class Collection(val collection: app.voxshelf.Collection, val shuffle: Long = System.nanoTime()) : Screen
+    data class Filtered(val filters: app.voxshelf.Filters) : Screen
     data object Player : Screen
     data class List(val list: UserList) : Screen
 }
@@ -62,6 +63,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
     var tab by rememberSaveable { mutableStateOf(Tab.Library) }
     val stack = remember { mutableStateListOf<Screen>() }
     var query by rememberSaveable { mutableStateOf("") }
+    var filters by remember { mutableStateOf(app.voxshelf.Filters()) }
     var language by remember { mutableStateOf(catalog.language) }
     val playerState by player.state.collectAsStateWithLifecycle()
 
@@ -87,6 +89,9 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                             catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },
                             onCollection = { stack += Screen.Collection(it) },
+                            filters = filters,
+                            onFilters = { filters = it },
+                            onFiltered = { stack += Screen.Filtered(it) },
                             onBook = { stack += Screen.Book(it.first.workId) },
                         )
                         is Screen.Subject -> SubjectScreen(
@@ -101,6 +106,11 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                                 onBook = { stack += Screen.Book(it.first.workId) },
                             )
                         }
+                        is Screen.Filtered -> FilteredScreen(
+                            catalog, language, screen.filters,
+                            onBack = { stack.removeAt(stack.lastIndex) },
+                            onBook = { stack += Screen.Book(it.first.workId) },
+                        )
                         is Screen.List -> UserListScreen(
                             catalog, library, screen.list,
                             onBack = { stack.removeAt(stack.lastIndex) },

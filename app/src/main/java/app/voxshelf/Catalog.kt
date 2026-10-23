@@ -51,6 +51,37 @@ enum class Collection(val label: String, val title: String) {
     Surprise("Surprise me", "Surprise me"),
 }
 
+/** What the Filter sheet narrows the catalog to. Null means "any". */
+data class Filters(
+    val shelf: String? = null,
+    val subject: String? = null,
+    val length: Length? = null,
+    val reader: Reader? = null,
+    val written: Written? = null,
+    val hideAbridged: Boolean = false,
+    val hideMature: Boolean = false,
+) {
+    val isEmpty get() = this == Filters()
+}
+
+enum class Length(val label: String, val sql: String) {
+    Short("Under 3 hours", "secs < 10800"),
+    Medium("3 to 10 hours", "secs BETWEEN 10800 AND 36000"),
+    Long("Over 10 hours", "secs > 36000"),
+}
+
+enum class Reader(val label: String, val sql: String) {
+    Solo("One reader", "solo = 1 AND dramatic = 0"),
+    Group("Group", "solo = 0 AND dramatic = 0"),
+    Dramatic("Dramatic", "dramatic = 1"),
+}
+
+enum class Written(val label: String, val sql: String) {
+    Before1800("Before 1800", "year > 0 AND year < 1800"),
+    The1800s("1800s", "year BETWEEN 1800 AND 1899"),
+    After1900("1900 onward", "year >= 1900"),
+}
+
 data class WorkSummary(val first: Recording, val recordings: Int)
 
 data class Subject(val name: String, val books: Int)
@@ -107,6 +138,27 @@ class Catalog(private val context: Context) {
         "SELECT * FROM book WHERE shelf = ? AND ('|' || subjects || '|') LIKE ? AND $langFilter ORDER BY ${sort.sql}, score DESC, id LIMIT $limit",
         shelf, "%|$subject|%", *langArgs().toTypedArray(),
     ) { group(it) }
+
+    private fun where(f: Filters): Pair<String, List<String>> {
+        val clauses = mutableListOf(langFilter)
+        val args = langArgs().toMutableList()
+        f.shelf?.let { clauses += "shelf = ?"; args += it }
+        f.subject?.let { clauses += "('|' || subjects || '|') LIKE ?"; args += "%|$it|%" }
+        listOfNotNull(f.length?.sql, f.reader?.sql, f.written?.sql).forEach { clauses += it }
+        if (f.hideAbridged) clauses += "abridged = 0"
+        if (f.hideMature) clauses += "mature = 0"
+        return clauses.joinToString(" AND ") to args
+    }
+
+    suspend fun filtered(f: Filters): List<WorkSummary> {
+        val (w, args) = where(f)
+        return query("SELECT * FROM book WHERE $w ORDER BY work_score DESC, score DESC, id", *args.toTypedArray()) { group(it) }
+    }
+
+    suspend fun count(f: Filters): Int {
+        val (w, args) = where(f)
+        return query("SELECT COUNT(DISTINCT work_id) FROM book WHERE $w", *args.toTypedArray()) { if (it.moveToNext()) it.getInt(0) else 0 }
+    }
 
     /** The biggest subjects across all shelves, for the rows on the Browse page. */
     suspend fun topSubjects(count: Int): List<Pair<String, Subject>> =

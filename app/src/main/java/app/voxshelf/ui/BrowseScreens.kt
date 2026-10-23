@@ -53,6 +53,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.voxshelf.Catalog
 import app.voxshelf.Collection
+import app.voxshelf.Filters
+import app.voxshelf.Length
+import app.voxshelf.Reader
+import app.voxshelf.Written
 import app.voxshelf.Ratings
 import app.voxshelf.Recording
 import app.voxshelf.Sort
@@ -69,6 +73,9 @@ fun BrowseScreen(
     onQuery: (String) -> Unit,
     onSubject: (shelf: String, subject: String) -> Unit,
     onCollection: (Collection) -> Unit,
+    filters: Filters,
+    onFilters: (Filters) -> Unit,
+    onFiltered: (Filters) -> Unit,
     onBook: (WorkSummary) -> Unit,
 ) {
     var showLanguages by remember { mutableStateOf(false) }
@@ -116,13 +123,21 @@ fun BrowseScreen(
                 .horizontalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Pill("Filter") { showFilter = true }
+            // Sliders icon: three lines, each with a knob.
+            IconCircle("Filters", { showFilter = true }) { u ->
+                listOf(6f to 15f, 12f to 8f, 18f to 13f).forEach { (y, knob) ->
+                    drawLine(Lantern.Text, Offset(3 * u, y * u), Offset(21 * u, y * u), 2f * u, StrokeCap.Round)
+                    drawCircle(Lantern.Surface, 3.2f * u, Offset(knob * u, y * u))
+                    drawCircle(Lantern.Text, 2.6f * u, Offset(knob * u, y * u), style = Stroke(2f * u))
+                }
+            }
             Collection.entries.forEach { c -> Pill(c.label) { onCollection(c) } }
         }
-        if (showFilter) FilterSheet(catalog, language, onDismiss = { showFilter = false }) { shelf, subject ->
+        if (showFilter) FilterSheet(catalog, language, filters, onFilters, onDismiss = { showFilter = false }) {
             showFilter = false
-            onSubject(shelf, subject)
+            onFiltered(filters)
         }
         Spacer(Modifier.height(8.dp))
         val rows by produceState(emptyList<Pair<String, Subject>>(), language) { value = catalog.topSubjects(10) }
@@ -171,60 +186,118 @@ private fun ShelfRow(title: String, load: suspend () -> List<WorkSummary>, langu
     }
 }
 
-/** Every subject, by shelf: what the Filter button opens. */
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+/** The Filter sheet: pick any mix of subject, length, reader and when it was written, then see the books. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun FilterSheet(catalog: Catalog, language: String?, onDismiss: () -> Unit, onPick: (shelf: String, subject: String) -> Unit) {
-    var shelfIndex by rememberSaveable { mutableIntStateOf(0) }
-    val shelf = Catalog.SHELVES[shelfIndex]
+private fun FilterSheet(catalog: Catalog, language: String?, filters: Filters, onChange: (Filters) -> Unit, onDismiss: () -> Unit, onShow: () -> Unit) {
+    val shelf = filters.shelf ?: Catalog.SHELVES[0]
     val subjects by produceState(emptyList<Subject>(), shelf, language) { value = catalog.subjects(shelf) }
-    val everythingElse by produceState(0, language) { value = catalog.subjects("").sumOf { it.books } }
+    val count by produceState<Int?>(null, filters, language) { value = catalog.count(filters) }
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = Lantern.Forest,
         sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        Text("Subjects", style = text(22.sp, 800), modifier = Modifier.padding(start = 20.dp, bottom = 12.dp))
-        Row(
-            Modifier
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 20.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Catalog.SHELVES.forEachIndexed { i, name -> Pill(name, selected = i == shelfIndex) { shelfIndex = i } }
-        }
-        Spacer(Modifier.height(16.dp))
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            items(subjects) { subject ->
-                Column(
-                    Modifier
-                        .clip(RoundedCornerShape(22.dp))
-                        .background(Lantern.Surface)
-                        .clickable(role = Role.Button) { onPick(shelf, subject.name) }
-                        .padding(16.dp)
-                        .height(64.dp),
-                    verticalArrangement = Arrangement.SpaceBetween,
-                ) {
-                    Text(subject.name, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text("%,d books".format(subject.books), style = text(13.sp, 600, Lantern.TextMuted))
+        Column(Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = 20.dp)) {
+            FilterTitle("Subject")
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Catalog.SHELVES.forEach { name ->
+                    Pill(name, selected = filters.shelf == name) {
+                        onChange(filters.copy(shelf = if (filters.shelf == name) null else name, subject = null))
+                    }
                 }
             }
-            if (everythingElse > 0) item(span = { GridItemSpan(2) }) {
-                Text(
-                    "Everything else (%,d books without a category)".format(everythingElse),
-                    style = text(14.sp, 700, Lantern.Gold),
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(12.dp))
-                        .clickable { onPick("", Catalog.EVERYTHING_ELSE) }
-                        .padding(vertical = 14.dp, horizontal = 4.dp),
-                )
+            Spacer(Modifier.height(12.dp))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                subjects.forEach { subject ->
+                    Pill(subject.name, selected = filters.subject == subject.name) {
+                        onChange(filters.copy(shelf = shelf, subject = if (filters.subject == subject.name) null else subject.name))
+                    }
+                }
             }
+            FilterTitle("Length")
+            Choices(Length.entries, filters.length, { it.label }) { onChange(filters.copy(length = it)) }
+            FilterTitle("Reader")
+            Choices(Reader.entries, filters.reader, { it.label }) { onChange(filters.copy(reader = it)) }
+            FilterTitle("When it was written")
+            Choices(Written.entries, filters.written, { it.label }) { onChange(filters.copy(written = it)) }
+            Spacer(Modifier.height(12.dp))
+            Toggle("Hide abridged books", filters.hideAbridged) { onChange(filters.copy(hideAbridged = it)) }
+            Toggle("Hide mature content", filters.hideMature) { onChange(filters.copy(hideMature = it)) }
+            Spacer(Modifier.height(12.dp))
         }
+        Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "Clear",
+                style = text(16.sp, 800, if (filters.isEmpty) Lantern.TextMuted else Lantern.Gold),
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(enabled = !filters.isEmpty) { onChange(Filters()) }.padding(16.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            val n = count
+            Text(
+                when (n) { null -> "Show books"; 0 -> "No books match"; 1 -> "Show 1 book"; else -> "Show %,d books".format(n) },
+                style = text(17.sp, 800, if (n != 0) Lantern.Forest else Lantern.TextMuted),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(28.dp))
+                    .background(if (n != 0) Lantern.Gold else Lantern.SurfaceHigh)
+                    .clickable(enabled = n != 0, role = Role.Button, onClick = onShow)
+                    .padding(vertical = 16.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun FilterTitle(title: String) {
+    Text(title, style = text(17.sp, 800), modifier = Modifier.padding(top = 20.dp, bottom = 10.dp))
+}
+
+/** Pick one or none: tapping the chosen option again clears it. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun <T> Choices(options: List<T>, chosen: T?, label: (T) -> String, onChoose: (T?) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.forEach { o -> Pill(label(o), selected = o == chosen) { onChoose(if (o == chosen) null else o) } }
+    }
+}
+
+@Composable
+private fun Toggle(label: String, on: Boolean, onChange: (Boolean) -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).clickable(role = Role.Switch) { onChange(!on) }.padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(label, style = text(16.sp, 600), modifier = Modifier.weight(1f))
+        androidx.compose.material3.Switch(
+            checked = on,
+            onCheckedChange = null,
+            colors = androidx.compose.material3.SwitchDefaults.colors(
+                checkedThumbColor = Lantern.Forest, checkedTrackColor = Lantern.Gold,
+                uncheckedThumbColor = Lantern.TextMuted, uncheckedTrackColor = Lantern.Surface, uncheckedBorderColor = Lantern.SurfaceHigh,
+            ),
+        )
+    }
+}
+
+/** The books matching the Filter sheet. */
+@Composable
+fun FilteredScreen(catalog: Catalog, language: String?, filters: Filters, onBack: () -> Unit, onBook: (WorkSummary) -> Unit) {
+    val works by produceState<List<WorkSummary>?>(null, filters, language) { value = catalog.filtered(filters) }
+    Column(Modifier.fillMaxSize()) {
+        Header(onBack)
+        Text(filters.subject ?: filters.shelf ?: "Filtered books", style = text(28.sp, 800), modifier = Modifier.padding(horizontal = 20.dp))
+        val gallery = rememberGallery()
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                (listOfNotNull(filters.length?.label, filters.reader?.label, filters.written?.label) + listOfNotNull(works?.let { "%,d books".format(it.size) })).joinToString(" · "),
+                style = text(14.sp, 600, Lantern.TextMuted),
+                modifier = Modifier.weight(1f),
+            )
+            ViewToggle(gallery)
+        }
+        works?.let { BookList(it, gallery.value, onBook) }
     }
 }
 
