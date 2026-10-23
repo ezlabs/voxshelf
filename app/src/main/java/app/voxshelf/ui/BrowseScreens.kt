@@ -237,7 +237,7 @@ private fun BookList(works: List<WorkSummary>, onBook: (WorkSummary) -> Unit) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun BookScreen(catalog: Catalog, workId: Int, playingId: Int?, onBack: () -> Unit, onPlay: (Recording) -> Unit) {
+fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, playingId: Int?, onBack: () -> Unit, onPlay: (Recording) -> Unit) {
     val recordings by produceState(emptyList<Recording>(), workId) { value = catalog.recordings(workId) }
     var selected by rememberSaveable(workId) { mutableIntStateOf(-1) }
     // Until you pick one, show the recording you're listening to (or the first).
@@ -270,6 +270,9 @@ fun BookScreen(catalog: Catalog, workId: Int, playingId: Int?, onBack: () -> Uni
                     modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Lantern.Gold).padding(horizontal = 12.dp, vertical = 4.dp),
                 )
             }
+
+            Spacer(Modifier.height(16.dp))
+            LibraryActions(library, book)
 
             Spacer(Modifier.height(18.dp))
             Text(

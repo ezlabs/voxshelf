@@ -49,6 +49,8 @@ data class PlayerState(
 
 class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private val positions = PositionStore(app)
+    private val catalog = Catalog.get(app)
+    private val library = Library.get(app)
     private val lastBook = app.getSharedPreferences("player", android.content.Context.MODE_PRIVATE)
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -58,6 +60,25 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
 
     private val listener = object : Player.Listener {
         override fun onEvents(player: Player, events: Player.Events) = refresh()
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            // Any time you press play, the book counts as one you're listening to.
+            if (isPlaying) _state.value.book?.let { book ->
+                viewModelScope.launch {
+                    val workId = catalog.recording(book.id)?.workId ?: return@launch
+                    if (library.entry(workId)?.status != Status.Listening) library.setStatus(workId, book.id, Status.Listening)
+                }
+            }
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            // Reaching the end of the last chapter marks the book finished.
+            if (playbackState == Player.STATE_ENDED) _state.value.book?.let { book ->
+                viewModelScope.launch {
+                    catalog.recording(book.id)?.let { library.setStatus(it.workId, book.id, Status.Finished) }
+                }
+            }
+        }
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && _state.value.sleepTimer == SleepTimer.EndOfChapter) {

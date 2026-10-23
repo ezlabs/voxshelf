@@ -30,7 +30,8 @@ data class Recording(
 
 /** A book in a list: its first recording stands in for the rest. */
 enum class Sort(val label: String, val sql: String) {
-    Popular("Most popular", "work_downloads DESC"),
+    Popular("Popular", "work_downloads DESC"),
+    Newest("Newest", "id DESC"),
     Title("A to Z", "title COLLATE NOCASE"),
 }
 
@@ -147,6 +148,11 @@ class Catalog(private val context: Context) {
     }
 
     companion object {
+        @Volatile private var instance: Catalog? = null
+        fun get(context: Context) = instance ?: synchronized(this) {
+            instance ?: Catalog(context.applicationContext).also { instance = it }
+        }
+
         val SHELVES = listOf("Fiction", "Nonfiction", "Poetry & Plays", "Kids")
         private const val ALL_LANGUAGES = "*"
         const val EVERYTHING_ELSE = "Everything else"

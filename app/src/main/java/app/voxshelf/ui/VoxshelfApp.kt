@@ -40,18 +40,25 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.voxshelf.Catalog
+import app.voxshelf.Library
+import app.voxshelf.UserList
 import app.voxshelf.PlayerViewModel
 
 private sealed interface Screen {
     data class Subject(val shelf: String, val name: String) : Screen
     data class Book(val workId: Int) : Screen
     data object Player : Screen
+    data class List(val list: UserList) : Screen
 }
+
+private enum class Tab(val label: String) { Browse("Browse"), Library("Library") }
 
 @Composable
 fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
     val context = LocalContext.current
-    val catalog = remember { Catalog(context.applicationContext) }
+    val catalog = remember { Catalog.get(context) }
+    val library = remember { Library.get(context) }
+    var tab by rememberSaveable { mutableStateOf(Tab.Browse) }
     val stack = remember { mutableStateListOf<Screen>() }
     var query by rememberSaveable { mutableStateOf("") }
     var language by remember { mutableStateOf(catalog.language) }
@@ -65,7 +72,11 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
             else -> Column(Modifier.fillMaxSize().safeDrawingPadding()) {
                 Box(Modifier.weight(1f)) {
                     when (screen) {
-                        null -> BrowseScreen(
+                        null -> if (tab == Tab.Library) LibraryScreen(
+                            catalog, library,
+                            onBook = { stack += Screen.Book(it) },
+                            onList = { stack += Screen.List(it) },
+                        ) else BrowseScreen(
                             catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },
                             onBook = { stack += Screen.Book(it.first.workId) },
@@ -75,8 +86,13 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                             onBack = { stack.removeAt(stack.lastIndex) },
                             onBook = { stack += Screen.Book(it.first.workId) },
                         )
+                        is Screen.List -> UserListScreen(
+                            catalog, library, screen.list,
+                            onBack = { stack.removeAt(stack.lastIndex) },
+                            onBook = { stack += Screen.Book(it) },
+                        )
                         is Screen.Book -> BookScreen(
-                            catalog, screen.workId, playerState.book?.id,
+                            catalog, library, screen.workId, playerState.book?.id,
                             onBack = { stack.removeAt(stack.lastIndex) },
                             onPlay = {
                                 player.open(it.id)
@@ -96,7 +112,28 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                         onPlayPause = player::playPause,
                     )
                 }
+                if (screen == null) TabBar(tab) { tab = it }
             }
+        }
+    }
+}
+
+@Composable
+private fun TabBar(current: Tab, onSelect: (Tab) -> Unit) {
+    Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp)) {
+        Tab.entries.forEach { t ->
+            val selected = t == current
+            Text(
+                t.label,
+                style = text(15.sp, 800, if (selected) Lantern.Gold else Lantern.TextMuted),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(if (selected) Lantern.Surface else Lantern.Forest)
+                    .clickable { onSelect(t) }
+                    .padding(vertical = 12.dp),
+            )
         }
     }
 }
