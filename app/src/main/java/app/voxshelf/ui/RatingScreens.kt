@@ -48,7 +48,7 @@ private enum class Step { Ask, Problems, Thanks }
 /** "How was this recording?" Thumbs up says thanks; thumbs down asks what went wrong first. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RatingSheet(recording: Int, chapter: Int?, onDone: () -> Unit) {
+fun RatingSheet(recording: Int, chapter: Int?, title: String, onDone: () -> Unit) {
     val ratings = Ratings.get(LocalContext.current)
     val scope = rememberCoroutineScope()
     var step by remember { mutableStateOf(Step.Ask) }
@@ -62,7 +62,7 @@ fun RatingSheet(recording: Int, chapter: Int?, onDone: () -> Unit) {
         failed = false
         scope.launch {
             try {
-                ratings.send(recording, up, problems, note, chapter)
+                ratings.send(recording, up, problems, note, chapter, title)
                 step = Step.Thanks
             } catch (e: Exception) {
                 failed = true

@@ -137,7 +137,7 @@ fun PlayerScreen(vm: PlayerViewModel, onClose: () -> Unit) {
         )
     }
 
-    if (rating && book != null) RatingSheet(book.id, state.chapter) { rating = false }
+    if (rating && book != null) RatingSheet(book.id, state.chapter, book.title) { rating = false }
 
     if (showChapters && book != null) {
         ModalBottomSheet(onDismissRequest = { showChapters = false }, containerColor = Lantern.Surface) {

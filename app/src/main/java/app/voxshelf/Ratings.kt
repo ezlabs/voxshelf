@@ -38,7 +38,7 @@ class Ratings(context: Context) {
     fun asked(recording: Int) = prefs.getBoolean("asked/$recording", false)
     fun markAsked(recording: Int) = prefs.edit().putBoolean("asked/$recording", true).apply()
 
-    suspend fun send(recording: Int, up: Boolean, problems: Set<Problem> = emptySet(), note: String = "", chapter: Int? = null) = io {
+    suspend fun send(recording: Int, up: Boolean, problems: Set<Problem> = emptySet(), note: String = "", chapter: Int? = null, title: String = "") = io {
         markAsked(recording)
         val body = JSONObject()
             .put("device", device)
@@ -46,6 +46,7 @@ class Ratings(context: Context) {
             .put("up", up)
             .put("problems", JSONArray(problems.map { it.key }))
             .put("note", note.trim())
+            .put("title", title)
         if (chapter != null) body.put("chapter", chapter)
         val c = connect("/ratings")
         c.requestMethod = "POST"

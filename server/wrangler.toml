@@ -2,6 +2,9 @@ name = "voxshelf-ratings"
 main = "src/index.js"
 compatibility_date = "2026-09-01"
 
+[vars]
+GITHUB_REPO = "ezlabs/voxshelf"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "voxshelf-ratings"

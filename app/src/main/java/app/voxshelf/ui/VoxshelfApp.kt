@@ -71,7 +71,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
 
     // When a book ends, ask once how the recording was, wherever you are in the app.
     playerState.book?.let { book ->
-        if (playerState.askToRate) RatingSheet(book.id, playerState.chapter, onDone = player::doneAskingToRate)
+        if (playerState.askToRate) RatingSheet(book.id, playerState.chapter, book.title, onDone = player::doneAskingToRate)
     }
 
     BackHandler(enabled = stack.isNotEmpty()) { stack.removeAt(stack.lastIndex) }
