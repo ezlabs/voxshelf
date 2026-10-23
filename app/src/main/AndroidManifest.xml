@@ -14,6 +14,7 @@
         android:theme="@style/Theme.Voxshelf"
         android:supportsRtl="true"
         android:allowBackup="true"
+        android:usesCleartextTraffic="${cleartext}"
         android:fullBackupContent="@xml/backup_rules"
         android:dataExtractionRules="@xml/data_extraction_rules">
 

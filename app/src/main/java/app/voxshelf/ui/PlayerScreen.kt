@@ -54,6 +54,7 @@ fun PlayerScreen(vm: PlayerViewModel, onClose: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showChapters by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
+    var rating by remember { mutableStateOf(false) }
     val book = state.book
 
     Column(
@@ -128,7 +129,15 @@ fun PlayerScreen(vm: PlayerViewModel, onClose: () -> Unit) {
             Pill(sleepLabel(state), onClick = { showSleep = true })
             Pill("Chapters", onClick = { showChapters = true })
         }
+        Spacer(Modifier.height(12.dp))
+        Text(
+            "Rate this recording",
+            style = text(15.sp, 800, Lantern.TextMuted),
+            modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable { rating = true }.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
     }
+
+    if (rating && book != null) RatingSheet(book.id, state.chapter) { rating = false }
 
     if (showChapters && book != null) {
         ModalBottomSheet(onDismissRequest = { showChapters = false }, containerColor = Lantern.Surface) {

@@ -15,8 +15,21 @@ android {
         versionName = "0.1.0"
     }
 
+    buildTypes {
+        debug {
+            // The ratings server running on this computer, as the emulator sees it.
+            buildConfigField("String", "RATINGS_URL", "\"http://10.0.2.2:8787\"")
+            manifestPlaceholders["cleartext"] = "true"
+        }
+        release {
+            buildConfigField("String", "RATINGS_URL", "\"\"")
+            manifestPlaceholders["cleartext"] = "false"
+        }
+    }
+
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

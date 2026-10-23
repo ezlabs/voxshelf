@@ -38,6 +38,8 @@ data class PlayerState(
     val speed: Float = 1f,
     val sleepTimer: SleepTimer = SleepTimer.Off,
     val sleepRemainingMs: Long? = null,
+    /** Set when a book ends that you haven't rated yet, so the app can ask once. */
+    val askToRate: Boolean = false,
 ) {
     val leftInBookMs: Long
         get() {
@@ -51,6 +53,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private val positions = PositionStore(app)
     private val catalog = Catalog.get(app)
     private val library = Library.get(app)
+    private val ratings = Ratings.get(app)
     private val lastBook = app.getSharedPreferences("player", android.content.Context.MODE_PRIVATE)
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
@@ -77,6 +80,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 viewModelScope.launch {
                     catalog.recording(book.id)?.let { library.setStatus(it.workId, book.id, Status.Finished) }
                 }
+                if (ratings.enabled && !ratings.asked(book.id)) _state.update { it.copy(askToRate = true) }
             }
         }
 
@@ -172,6 +176,12 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
         if (rewindMs > 0) p.seekTo((p.currentPosition - rewindMs).coerceAtLeast(0))
         p.play()
+    }
+
+    /** Closes the end-of-book question; it won't come back for this recording. */
+    fun doneAskingToRate() {
+        _state.value.book?.let { ratings.markAsked(it.id) }
+        _state.update { it.copy(askToRate = false) }
     }
 
     fun back() = controller?.seekBack()

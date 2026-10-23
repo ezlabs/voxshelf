@@ -51,6 +51,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.voxshelf.Catalog
+import app.voxshelf.Ratings
 import app.voxshelf.Recording
 import app.voxshelf.Sort
 import app.voxshelf.Subject
@@ -243,6 +244,10 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
     // Until you pick one, show the recording you're listening to (or the first).
     if (selected == -1 && recordings.isNotEmpty()) selected = recordings.indexOfFirst { it.id == playingId }.coerceAtLeast(0)
     val book = recordings.getOrNull(selected)
+    val ratings = Ratings.get(androidx.compose.ui.platform.LocalContext.current)
+    val summaries by produceState(emptyMap<Int, app.voxshelf.RatingSummary>(), recordings) {
+        if (ratings.enabled) value = runCatching { ratings.summaries(recordings.map { it.id }) }.getOrDefault(emptyMap())
+    }
 
     Column(Modifier.fillMaxSize()) {
         Header(onBack)
@@ -301,7 +306,8 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
                                 listOfNotNull(readerLabel(r), length(r.seconds), "${r.chapters} chapters").joinToString(" · "),
                                 style = text(13.sp, 400, Lantern.TextMuted),
                             )
-                            Text("No recording ratings yet", style = text(13.sp, 400, Lantern.TextMuted))
+                            Text(ratingLine(summaries[r.id]), style = text(13.sp, 400, Lantern.TextMuted))
+                            problemLine(summaries[r.id])?.let { Text(it, style = text(13.sp, 600, Lantern.Gold)) }
                         }
                         Box(
                             Modifier.size(22.dp).clip(CircleShape).background(if (isSelected) Lantern.Gold else Lantern.SurfaceHigh),

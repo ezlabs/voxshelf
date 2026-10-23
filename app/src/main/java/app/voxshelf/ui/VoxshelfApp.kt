@@ -64,6 +64,11 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
     var language by remember { mutableStateOf(catalog.language) }
     val playerState by player.state.collectAsStateWithLifecycle()
 
+    // When a book ends, ask once how the recording was, wherever you are in the app.
+    playerState.book?.let { book ->
+        if (playerState.askToRate) RatingSheet(book.id, playerState.chapter, onDone = player::doneAskingToRate)
+    }
+
     BackHandler(enabled = stack.isNotEmpty()) { stack.removeAt(stack.lastIndex) }
 
     Box(Modifier.fillMaxSize().background(Lantern.Forest)) {
