@@ -8,7 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import app.voxshelf.ui.PlayerScreen
+import app.voxshelf.ui.VoxshelfApp
 import app.voxshelf.ui.VoxshelfTheme
 
 class MainActivity : ComponentActivity() {
@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
         // Android 13+ needs permission to show the playback notification and lock screen controls.
         if (Build.VERSION.SDK_INT >= 33) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 0)
         setContent {
-            VoxshelfTheme { PlayerScreen() }
+            VoxshelfTheme { VoxshelfApp() }
         }
     }
 }

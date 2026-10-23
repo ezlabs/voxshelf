@@ -41,7 +41,11 @@ for b in books:
     label = (variant.group(1) if variant else "").lower()
     author_ids = ",".join(sorted(a.get("id") or "" for a in (b.get("authors") or [])))
     key = (base.lower(), author_ids, b.get("language"))
-    readers = {r.get("reader_id") for s in (b.get("sections") or []) for r in (s.get("readers") or [])}
+    reader_names = {}
+    for s in sections:
+        for r in s.get("readers") or []:
+            reader_names.setdefault(r.get("reader_id"), (r.get("display_name") or "").strip())
+    readers = set(reader_names)
     row = {
         "id": int(b["id"]),
         "title": base,
@@ -52,6 +56,7 @@ for b in books:
         "description": trim(clean_text(b.get("description"))),
         "secs": int(b.get("totaltimesecs") or 0) or sum(int(x.get("playtime") or 0) for x in sections),
         "chapters": int(b.get("num_sections") or 0),
+        "readers": ", ".join(n for n in reader_names.values() if n) if len(readers) <= 3 else f"{len(readers)} readers",
         "solo": 1 if len(readers) == 1 else 0,
         "dramatic": 1 if "dramatic" in label else 0,
         "abridged": 1 if "abridged" in label else 0,
@@ -80,7 +85,7 @@ con.execute("CREATE INDEX book_work ON book(work_id)")
 con.execute("CREATE INDEX book_shelf ON book(shelf)")
 con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
 con.execute("INSERT INTO meta VALUES ('version', ?)", (version,))
-con.execute("CREATE VIRTUAL TABLE book_fts USING fts5(title, authors, content='book', content_rowid='id')")
+con.execute("CREATE VIRTUAL TABLE book_fts USING fts4(content='book', title, authors)")
 con.execute("INSERT INTO book_fts(book_fts) VALUES ('rebuild')")
 con.commit()
 con.execute("VACUUM")

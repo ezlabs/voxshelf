@@ -31,35 +31,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import app.voxshelf.PlayerState
 import app.voxshelf.PlayerViewModel
 import app.voxshelf.SleepTimer
 
-private fun text(size: TextUnit, weight: Int = 400, color: Color = Lantern.Text) =
-    TextStyle(fontFamily = Nunito, fontSize = size, fontWeight = FontWeight(weight), color = color)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PlayerScreen(vm: PlayerViewModel = viewModel()) {
+fun PlayerScreen(vm: PlayerViewModel, onClose: () -> Unit) {
     val state by vm.state.collectAsStateWithLifecycle()
     var showChapters by remember { mutableStateOf(false) }
     var showSleep by remember { mutableStateOf(false) }
@@ -74,16 +65,21 @@ fun PlayerScreen(vm: PlayerViewModel = viewModel()) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (book == null) {
+            Row(Modifier.fillMaxWidth()) { IconCircle("Close player", onClose) { u -> chevron(u, down = true) } }
             Spacer(Modifier.weight(1f))
             Text(state.error ?: "Getting your book ready…", style = text(16.sp, 600, Lantern.TextMuted), textAlign = TextAlign.Center)
             Spacer(Modifier.weight(1f))
             return@Column
         }
 
-        Pill("Chapter ${state.chapter + 1} of ${book.chapters.size}", onClick = { showChapters = true })
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            IconCircle("Close player", onClose) { u -> chevron(u, down = true) }
+            Pill("Chapter ${state.chapter + 1} of ${book.chapters.size}", onClick = { showChapters = true })
+            Spacer(Modifier.size(44.dp))
+        }
 
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            Cover(book.title, book.author, 270.dp)
+            Cover(book.title, book.author, 270.dp, glow = true)
         }
 
         Text(
@@ -177,48 +173,6 @@ fun PlayerScreen(vm: PlayerViewModel = viewModel()) {
 }
 
 @Composable
-private fun Cover(title: String, author: String, size: Dp) {
-    Box(
-        Modifier
-            .size(size)
-            .drawBehind {
-                drawCircle(
-                    Brush.radialGradient(listOf(Lantern.Gold.copy(alpha = 0.32f), Color.Transparent), radius = this.size.width * 0.85f),
-                    radius = this.size.width * 0.85f,
-                )
-            },
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            Modifier
-                .size(size)
-                .clip(RoundedCornerShape(40.dp))
-                .background(Lantern.Cover)
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            LanternIcon(48.dp)
-            Spacer(Modifier.height(10.dp))
-            Text(title, style = text(36.sp, 800), textAlign = TextAlign.Center, lineHeight = 38.sp)
-            Spacer(Modifier.height(6.dp))
-            Text(author, style = text(15.sp, 600, Lantern.TextSoft), textAlign = TextAlign.Center)
-        }
-    }
-}
-
-@Composable
-private fun LanternIcon(size: Dp) {
-    Canvas(Modifier.size(size)) {
-        val u = this.size.width / 24f
-        val stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.6f * u, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-        drawLine(Lantern.Gold, Offset(9 * u, 3 * u), Offset(15 * u, 3 * u), 1.6f * u, androidx.compose.ui.graphics.StrokeCap.Round)
-        drawRoundRect(Lantern.Gold, Offset(7 * u, 6 * u), Size(10 * u, 13 * u), CornerRadius(4 * u), style = stroke)
-        drawLine(Lantern.Gold, Offset(12 * u, 11 * u), Offset(12 * u, 15 * u), 1.6f * u, androidx.compose.ui.graphics.StrokeCap.Round)
-    }
-}
-
-@Composable
 private fun PlayButton(isPlaying: Boolean, onClick: () -> Unit) {
     Box(
         Modifier
@@ -259,33 +213,6 @@ private fun RoundButton(label: String, description: String, size: Dp, color: Col
     ) {
         Text(label, style = text(15.sp, 800))
     }
-}
-
-@Composable
-private fun Pill(label: String, onClick: () -> Unit) {
-    Text(
-        label,
-        style = text(14.sp, 700),
-        modifier = Modifier
-            .height(40.dp)
-            .clip(RoundedCornerShape(20.dp))
-            .background(Lantern.Surface)
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
-    )
-}
-
-private fun clock(ms: Long): String {
-    val total = (ms / 1000).coerceAtLeast(0)
-    val h = total / 3600
-    val m = (total % 3600) / 60
-    val s = total % 60
-    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
-}
-
-private fun hoursMinutes(ms: Long): String {
-    val minutes = ms / 60_000
-    return if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
 }
 
 private fun speedLabel(speed: Float) = "%.2f".format(speed).trimEnd('0').trimEnd('.') + "×"

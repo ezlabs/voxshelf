@@ -49,6 +49,7 @@ data class PlayerState(
 
 class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     private val positions = PositionStore(app)
+    private val lastBook = app.getSharedPreferences("player", android.content.Context.MODE_PRIVATE)
     private val _state = MutableStateFlow(PlayerState())
     val state: StateFlow<PlayerState> = _state.asStateFlow()
 
@@ -70,7 +71,9 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val token = SessionToken(app, ComponentName(app, PlaybackService::class.java))
             controller = MediaController.Builder(app, token).buildAsync().await().also { it.addListener(listener) }
-            load(BOOK_ID)
+            val playing = bookIdOf(controller?.currentMediaItem?.mediaId)
+            val last = playing ?: lastBook.getInt("id", 0).takeIf { it != 0 }
+            if (last != null) load(last, autoplay = false)
             while (isActive) {
                 refresh()
                 delay(500)
@@ -78,7 +81,14 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private suspend fun load(bookId: Int) {
+    /** Opens a recording in the player and starts it from your saved spot. */
+    fun open(bookId: Int) {
+        viewModelScope.launch { load(bookId, autoplay = true) }
+    }
+
+    private suspend fun load(bookId: Int, autoplay: Boolean) {
+        lastBook.edit().putInt("id", bookId).apply()
+        if (_state.value.book?.id != bookId) _state.update { PlayerState() }
         val book = try {
             LibriVox.book(bookId)
         } catch (e: Exception) {
@@ -87,7 +97,10 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         }
         _state.update { it.copy(book = book, error = null) }
         val player = controller ?: return
-        if (bookIdOf(player.currentMediaItem?.mediaId) == bookId) return
+        if (bookIdOf(player.currentMediaItem?.mediaId) == bookId) {
+            if (autoplay && !player.isPlaying) playPause()
+            return
+        }
 
         val items = book.chapters.mapIndexed { i, chapter ->
             MediaItem.Builder()
@@ -105,6 +118,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         val saved = positions.load(bookId)
         player.setMediaItems(items, saved?.chapter ?: 0, saved?.positionMs ?: 0)
         player.prepare()
+        if (autoplay) player.play()
     }
 
     private fun refresh() {
@@ -175,7 +189,6 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     private companion object {
-        const val BOOK_ID = 21507 // On Liberty, read by Bryn Roberts
         val SPEEDS = listOf(0.8f, 1f, 1.1f, 1.2f, 1.35f, 1.5f, 1.75f, 2f)
     }
 }
