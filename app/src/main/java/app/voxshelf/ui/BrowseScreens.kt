@@ -220,7 +220,7 @@ private fun BookList(works: List<WorkSummary>, onBook: (WorkSummary) -> Unit) {
                     .padding(horizontal = 20.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Cover(r.title, r.authors, 64.dp)
+                Cover(r.title, r.authors, 64.dp, art = r.cover)
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
@@ -260,7 +260,7 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(24.dp))
-            Cover(book.title, book.authors, 190.dp, glow = true)
+            Cover(book.title, book.authors, 190.dp, art = book.cover, glow = true)
             Spacer(Modifier.height(18.dp))
             Text(book.title, style = text(28.sp, 800), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
             Text(

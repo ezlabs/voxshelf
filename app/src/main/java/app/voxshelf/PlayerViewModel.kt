@@ -30,6 +30,8 @@ enum class SleepTimer(val label: String, val minutes: Int?) {
 
 data class PlayerState(
     val book: Book? = null,
+    /** The recording's LibriVox cover art (small version), if it has one. */
+    val cover: String? = null,
     val error: String? = null,
     val isPlaying: Boolean = false,
     val chapter: Int = 0,
@@ -120,7 +122,8 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             _state.update { it.copy(error = "Couldn't load this book. Check your internet connection.") }
             return
         }
-        _state.update { it.copy(book = book, error = null) }
+        val cover = catalog.recording(bookId)?.cover
+        _state.update { it.copy(book = book, cover = cover, error = null) }
         val player = controller ?: return
         if (bookIdOf(player.currentMediaItem?.mediaId) == bookId) {
             if (autoplay && !player.isPlaying) playPause()
@@ -136,6 +139,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                         .setTitle(chapter.title)
                         .setArtist(book.author)
                         .setAlbumTitle(book.title)
+                        .setArtworkUri(cover?.replace("_thumb", "")?.toUri())
                         .build()
                 )
                 .build()

@@ -14,6 +14,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -47,9 +51,12 @@ private val coverTones = listOf(
 
 fun coverColor(title: String) = coverTones[title.hashCode().absoluteValue % coverTones.size]
 
-/** A cover made from the title and author, since many LibriVox covers are plain templates. */
+/**
+ * The LibriVox cover art when there is one ([art] is its small version). A cover made from the title and
+ * author shows while it loads, and stays if there's no art or it can't load.
+ */
 @Composable
-fun Cover(title: String, author: String, size: Dp, glow: Boolean = false) {
+fun Cover(title: String, author: String, size: Dp, art: String? = null, glow: Boolean = false) {
     val big = size >= 160.dp
     Box(
         Modifier
@@ -88,7 +95,22 @@ fun Cover(title: String, author: String, size: Dp, glow: Boolean = false) {
                 Text(author, style = text((size.value * 0.056f).sp, 600, Lantern.TextSoft), textAlign = TextAlign.Center, maxLines = 1)
             }
         }
+        if (art != null) CoverArt(art, big, title, Modifier.size(size).clip(RoundedCornerShape(size * 0.15f)))
     }
+}
+
+/** Big covers try the full-size art first; some recordings only have the small version. */
+@Composable
+private fun CoverArt(small: String, big: Boolean, title: String, modifier: Modifier) {
+    val choices = remember(small, big) { listOfNotNull(small.replace("_thumb", "").takeIf { big && it != small }, small) }
+    var tried by remember(choices) { mutableIntStateOf(0) }
+    coil3.compose.AsyncImage(
+        model = choices[tried],
+        contentDescription = "Cover of $title",
+        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+        onError = { if (tried < choices.lastIndex) tried++ },
+        modifier = modifier,
+    )
 }
 
 @Composable

@@ -80,7 +80,7 @@ fun PlayerScreen(vm: PlayerViewModel, onClose: () -> Unit) {
         }
 
         Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-            Cover(book.title, book.author, 270.dp, glow = true)
+            Cover(book.title, book.author, 270.dp, art = state.cover, glow = true)
         }
 
         Text(

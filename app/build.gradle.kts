@@ -46,4 +46,6 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.coroutines.android)
     implementation(libs.coroutines.guava)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network)
 }

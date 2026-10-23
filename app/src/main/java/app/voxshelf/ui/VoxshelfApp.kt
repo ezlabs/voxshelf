@@ -112,6 +112,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                 if (book != null) {
                     MiniPlayer(
                         title = book.title,
+                        art = playerState.cover,
                         chapter = book.chapters.getOrNull(playerState.chapter)?.title.orEmpty(),
                         isPlaying = playerState.isPlaying,
                         onOpen = { stack += Screen.Player },
@@ -146,7 +147,7 @@ private fun TabBar(current: Tab, onSelect: (Tab) -> Unit) {
 
 /** The "now playing" bar at the bottom of every screen, so you can always get back to your book. */
 @Composable
-private fun MiniPlayer(title: String, chapter: String, isPlaying: Boolean, onOpen: () -> Unit, onPlayPause: () -> Unit) {
+private fun MiniPlayer(title: String, art: String?, chapter: String, isPlaying: Boolean, onOpen: () -> Unit, onPlayPause: () -> Unit) {
     Row(
         Modifier
             .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -158,7 +159,7 @@ private fun MiniPlayer(title: String, chapter: String, isPlaying: Boolean, onOpe
             .padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Cover(title, "", 48.dp)
+        Cover(title, "", 48.dp, art = art)
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(title, style = text(15.sp, 800), maxLines = 1, overflow = TextOverflow.Ellipsis)

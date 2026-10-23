@@ -26,6 +26,8 @@ data class Recording(
     val subjects: List<String>,
     val language: String,
     val downloads: Int,
+    /** LibriVox cover art (small version), or null if the recording has none. */
+    val cover: String?,
 )
 
 /** A book in a list: its first recording stands in for the rest. */
@@ -144,6 +146,7 @@ class Catalog(private val context: Context) {
             subjects = str("subjects").split('|').filter(String::isNotBlank),
             language = str("language"),
             downloads = int("downloads"),
+            cover = str("cover").ifBlank { null },
         )
     }
 
