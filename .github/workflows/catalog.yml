@@ -1,0 +1,31 @@
+name: Nightly catalog
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch LibriVox catalog
+        run: python catalog/fetch_catalog.py catalog/raw
+      - name: Build phone catalog
+        run: |
+          python catalog/build_catalog.py catalog/raw catalog.db
+          gzip -9 -k catalog.db
+      - name: Publish as the "catalog" release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view catalog >/dev/null 2>&1 || gh release create catalog --title "Latest catalog" --notes "Rebuilt nightly from the LibriVox API."
+          gh release upload catalog catalog.db.gz --clobber

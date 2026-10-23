@@ -1,0 +1,4 @@
+catalog/raw/
+*.db
+*.db.gz
+__pycache__/
