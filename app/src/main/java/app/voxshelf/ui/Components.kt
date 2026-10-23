@@ -82,7 +82,7 @@ fun Cover(title: String, author: String, size: Dp, art: app.voxshelf.Art? = null
             verticalArrangement = Arrangement.Center,
         ) {
             if (big) {
-                LanternIcon(size * 0.18f)
+                LogoMark(size * 0.22f)
                 Spacer(Modifier.height(size * 0.04f))
             }
             Text(
@@ -136,13 +136,29 @@ fun PrefetchCovers(works: List<app.voxshelf.WorkSummary>, lastVisible: () -> Int
 
 private const val PREFETCH = 4
 
+/** The Voxshelf mark (same as the app icon): an open book whose pages form a V, with sound rising from it. */
 @Composable
-fun LanternIcon(size: Dp) {
+fun LogoMark(size: Dp) {
     Canvas(Modifier.size(size)) {
-        val u = this.size.width / 24f
-        drawLine(Lantern.Gold, Offset(9 * u, 3 * u), Offset(15 * u, 3 * u), 1.6f * u, StrokeCap.Round)
-        drawRoundRect(Lantern.Gold, Offset(7 * u, 6 * u), Size(10 * u, 13 * u), CornerRadius(4 * u), style = Stroke(1.6f * u))
-        drawLine(Lantern.Gold, Offset(12 * u, 11 * u), Offset(12 * u, 15 * u), 1.6f * u, StrokeCap.Round)
+        // Drawn on the icon's grid, where the mark spans x 22..86 and y 17..84.
+        val u = this.size.width / 70f
+        fun p(x: Float, y: Float) = Offset((x - 19f) * u, (y - 16f) * u)
+        fun page(edge: Float, alpha: Float) = drawPath(androidx.compose.ui.graphics.Path().apply {
+            moveTo(p(54f, 84f).x, p(54f, 84f).y)
+            cubicTo(p(54f + (46f - 54f) * edge, 70f).x, p(0f, 70f).y, p(54f + (36f - 54f) * edge, 56f).x, p(0f, 56f).y, p(54f + (22f - 54f) * edge, 44f).x, p(0f, 44f).y)
+            cubicTo(p(54f + (34f - 54f) * edge, 40f).x, p(0f, 40f).y, p(54f + (46f - 54f) * edge, 44f).x, p(0f, 44f).y, p(54f, 56f).x, p(54f, 56f).y)
+            close()
+        }, Lantern.Gold.copy(alpha = alpha))
+        page(1f, 1f)
+        page(-1f, 0.86f)
+        // Three arcs: radius, centre height and opacity, matching the icon's sound waves.
+        listOf(Triple(12f, 44.9f, 1f), Triple(22f, 43.1f, 0.6f), Triple(32f, 41.2f, 0.3f)).forEach { (r, cy, alpha) ->
+            val half = Math.toDegrees(kotlin.math.asin(((if (r == 12f) 9f else if (r == 22f) 16f else 23f) / r).toDouble())).toFloat()
+            drawArc(
+                Lantern.Gold.copy(alpha = alpha), startAngle = 270f - half, sweepAngle = 2 * half, useCenter = false,
+                topLeft = p(54f - r, cy - r), size = Size(2 * r * u, 2 * r * u), style = Stroke(4f * u, cap = StrokeCap.Round),
+            )
+        }
     }
 }
 

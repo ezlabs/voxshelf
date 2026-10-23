@@ -1,13 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The Voxshelf lantern (same shape as on generated covers), scaled into the 108dp adaptive icon's safe zone. -->
+<!-- The Voxshelf mark: an open book whose pages form a V, with sound rising from it.
+     Drawn on a 108 grid and scaled into the adaptive icon's 66dp safe zone so round masks don't clip it. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp" android:height="108dp"
     android:viewportWidth="108" android:viewportHeight="108">
-    <group android:scaleX="2.2" android:scaleY="2.2" android:translateX="27.6" android:translateY="27.6">
-        <!-- soft glow behind the flame -->
-        <path android:fillColor="#33F2C76E" android:pathData="M12,12.5m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0" />
-        <path android:strokeColor="#F2C76E" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M9,3L15,3" />
-        <path android:strokeColor="#F2C76E" android:strokeWidth="1.6" android:pathData="M11,6L13,6A4,4 0,0 1,17 10L17,15A4,4 0,0 1,13 19L11,19A4,4 0,0 1,7 15L7,10A4,4 0,0 1,11 6Z" />
-        <path android:strokeColor="#F2C76E" android:strokeWidth="1.6" android:strokeLineCap="round" android:pathData="M12,11L12,15" />
+    <group android:scaleX="0.7" android:scaleY="0.7" android:pivotX="54" android:pivotY="54" android:translateY="3">
+        <!-- warm glow behind the book -->
+        <path android:pathData="M54,46m-34,0a34,34 0,1 1,68 0a34,34 0,1 1,-68 0">
+            <aapt:attr name="android:fillColor">
+                <gradient android:type="radial" android:centerX="54" android:centerY="46" android:gradientRadius="34">
+                    <item android:offset="0" android:color="#61F2C76E" />
+                    <item android:offset="1" android:color="#00F2C76E" />
+                </gradient>
+            </aapt:attr>
+        </path>
+        <path android:fillColor="#F2C76E" android:pathData="M54,84 C46,70 36,56 22,44 C34,40 46,44 54,56 Z" />
+        <path android:fillColor="#F2C76E" android:fillAlpha="0.86" android:pathData="M54,84 C62,70 72,56 86,44 C74,40 62,44 54,56 Z" />
+        <path android:strokeColor="#F2C76E" android:strokeWidth="4" android:strokeLineCap="round" android:pathData="M45,37 A12,12 0 0,1 63,37" />
+        <path android:strokeColor="#F2C76E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeAlpha="0.6" android:pathData="M38,28 A22,22 0 0,1 70,28" />
+        <path android:strokeColor="#F2C76E" android:strokeWidth="4" android:strokeLineCap="round" android:strokeAlpha="0.3" android:pathData="M31,19 A32,32 0 0,1 77,19" />
     </group>
 </vector>
