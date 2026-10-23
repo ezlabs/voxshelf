@@ -19,6 +19,15 @@ out = Path(sys.argv[2] if len(sys.argv) > 2 else "catalog.db")
 version = sys.argv[3] if len(sys.argv) > 3 else "dev"
 popularity_file = Path(sys.argv[4] if len(sys.argv) > 4 else "popularity.json")
 popularity = json.loads(popularity_file.read_text(encoding="utf-8")) if popularity_file.exists() else {}
+# Open Library star ratings, from fetch_openlibrary.py, keyed by "title|first author".
+openlibrary_file = Path(sys.argv[5] if len(sys.argv) > 5 else "openlibrary.json")
+openlibrary = json.loads(openlibrary_file.read_text(encoding="utf-8")) if openlibrary_file.exists() else {}
+OL_MIN_RATINGS = 5
+
+
+def ol_key(title, authors):
+    norm = lambda t: re.sub(r"[^a-z0-9]+", " ", (t or "").lower()).strip()
+    return f"{norm(title)}|{norm((authors or '').split(',')[0])}"
 books = [b for f in sorted(raw_dir.glob("page_*.json")) for b in json.loads(f.read_text(encoding="utf-8"))]
 
 
@@ -116,6 +125,9 @@ for work_id, members in enumerate(works.values(), 1):
         # New releases get a burst of downloads in their first weeks, so don't treat that month as typical.
         r["_recent"] = r["month"] if age >= 0.25 else r["downloads"] / 12
         r["score"] = round(blend(r["_per_year"], r["_recent"]), 4)
+    # Shown only with enough ratings to mean something; same for every recording of the book.
+    ol = openlibrary.get(ol_key(members[0]["title"], members[0]["authors"])) or [None, 0, 0]
+    ol_rating, ol_count = (ol[2], ol[1]) if ol[1] >= OL_MIN_RATINGS else (None, None)
     work_score = round(blend(sum(r.pop("_per_year") for r in members), sum(r.pop("_recent") for r in members)), 4)
     work_month = sum(r["month"] for r in members)
     # Volunteers often read a later reprint, so the earliest year across recordings is the best guess at
@@ -126,6 +138,8 @@ for work_id, members in enumerate(works.values(), 1):
         r["work_id"] = work_id
         r["work_downloads"] = work_downloads
         r["work_score"] = work_score
+        r["ol_rating"] = ol_rating
+        r["ol_count"] = ol_count
         r["work_month"] = work_month
         r["year"] = work_year
         r.pop("_year")

@@ -321,6 +321,13 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
                 listOfNotNull(book.authors.ifBlank { null }, book.year?.toString() ?: book.era).joinToString(" · "),
                 style = text(15.sp, 400, Lantern.TextMuted),
             )
+            if (book.olRating != null && book.olCount != null) {
+                Text(
+                    "★ %.1f · %,d ratings on Open Library".format(book.olRating, book.olCount),
+                    style = text(14.sp, 700, Lantern.Gold),
+                    modifier = Modifier.padding(top = 4.dp),
+                )
+            }
             if (book.mature) {
                 Spacer(Modifier.height(10.dp))
                 Text(

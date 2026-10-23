@@ -32,6 +32,9 @@ data class Recording(
     val year: Int?,
     /** The year LibriVox released this recording, if known. */
     val recorded: Int?,
+    /** Open Library's star rating for the book (out of 5) and how many people gave one; null when too few. */
+    val olRating: Double?,
+    val olCount: Int?,
 )
 
 /** A book in a list: its first recording stands in for the rest. */
@@ -153,6 +156,9 @@ class Catalog(private val context: Context) {
             cover = str("cover").ifBlank { null },
             year = int("year").takeIf { it > 0 },
             recorded = int("recorded").takeIf { it > 0 },
+            // Optional: older catalogs don't have Open Library ratings.
+            olRating = getColumnIndex("ol_rating").takeIf { it >= 0 }?.let { getDouble(it) }?.takeIf { it > 0 },
+            olCount = getColumnIndex("ol_count").takeIf { it >= 0 }?.let { getInt(it) }?.takeIf { it > 0 },
         )
     }
 

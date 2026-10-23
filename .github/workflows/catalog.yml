@@ -11,7 +11,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,15 +26,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p prev
-          gh release download catalog -D prev -p catalog.db.gz -p manifest.json || echo "No previous catalog"
-          if [ -f prev/catalog.db.gz ]; then gunzip prev/catalog.db.gz; fi
+          gh release download catalog -D prev -p catalog.db.gz -p manifest.json -p openlibrary.json || echo "No previous catalog"
+          if [ -f prev/catalog.db.gz ]; then gunzip -k prev/catalog.db.gz; fi
+      - name: Fetch Open Library ratings (a slice each night)
+        run: |
+          if [ -f prev/openlibrary.json ]; then cp prev/openlibrary.json catalog/openlibrary.json; fi
+          if [ -f prev/catalog.db ]; then python catalog/fetch_openlibrary.py prev/catalog.db catalog/openlibrary.json 1500; fi
       - name: Build phone catalog and changes
         run: |
           VERSION=$(date -u +%Y%m%d)
           mkdir -p out
-          python catalog/build_catalog.py catalog/raw out/catalog.db "$VERSION" catalog/popularity.json
+          python catalog/build_catalog.py catalog/raw out/catalog.db "$VERSION" catalog/popularity.json catalog/openlibrary.json
           python catalog/diff_catalog.py prev/catalog.db out/catalog.db out "$VERSION" prev/manifest.json
           gzip -9 out/catalog.db
+          cp catalog/openlibrary.json out/openlibrary.json 2>/dev/null || true
       - name: Publish to the "catalog" release
         env:
           GH_TOKEN: ${{ github.token }}
