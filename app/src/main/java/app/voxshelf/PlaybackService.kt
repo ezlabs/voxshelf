@@ -39,9 +39,12 @@ class PlaybackService : MediaSessionService() {
         }
     }
 
+    private lateinit var ahead: ListenAhead
+
     override fun onCreate() {
         super.onCreate()
         positions = PositionStore(this)
+        ahead = ListenAhead(this)
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(Downloads.get(this).playerSource))
             .setAudioAttributes(
@@ -66,11 +69,17 @@ class PlaybackService : MediaSessionService() {
                     Sleep.setting.value.endAt?.let { if (System.currentTimeMillis() >= it) Sleep.set(SleepTimer.Off) }
                     handler.postDelayed(saveTick, SAVE_EVERY_MS)
                     handler.post(sleepTick)
+                    ahead.update(player)
                 }
+            }
+
+            override fun onPlaybackStateChanged(playbackState: Int) {
+                if (playbackState == Player.STATE_ENDED) ahead.clear(player)
             }
 
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
                 savePosition(player)
+                if (player.isPlaying) ahead.update(player)
                 if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && Sleep.setting.value.timer == SleepTimer.EndOfChapter) {
                     player.pause()
                     Sleep.set(SleepTimer.Off)
@@ -95,6 +104,7 @@ class PlaybackService : MediaSessionService() {
     override fun onDestroy() {
         handler.removeCallbacks(saveTick)
         handler.removeCallbacks(sleepTick)
+        ahead.release()
         session?.run {
             savePosition(player)
             player.release()

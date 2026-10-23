@@ -82,7 +82,7 @@ fun chapterName(raw: String?, index: Int): String {
     // "05 - Name", "5. Name", "XV. Name"
     t = t.replace(Regex("""^(\d{1,3}|[IVXLC]{1,7})\s*[-.:)]\s+(?=\S)"""), "")
     // "Chapter 3: Name", "Chapter XX - Name", "Chapter 3 Name" (only when a name follows)
-    t = t.replace(Regex("""(?i)^chapter\s+([0-9]+|[ivxlc]+)\s*[-.:]?\s+(?=[A-Za-z"'])"""), "")
+    t = t.replace(Regex("""(?i)^(chapter\s*|chap\.\s*|chap\s+|ch\.\s*|ch\s+)([0-9]+|[ivxlc]+)\s*[-–—.:]?\s+(?=[A-Za-z"'“‘])"""), "")
     if (t.length > 3 && t == t.uppercase() && t.any { it.isLetter() }) {
         t = t.lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } }
     }

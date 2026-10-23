@@ -8,6 +8,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
 import androidx.media3.exoplayer.offline.Download
@@ -60,11 +61,31 @@ class Downloads private constructor(private val context: Context) {
     private fun requirementsFor(wifiOnly: Boolean) =
         Requirements(if (wifiOnly) Requirements.NETWORK_UNMETERED else Requirements.NETWORK)
 
-    /** Plays saved chapters from the phone and streams the rest without saving them. */
+    /**
+     * Chapters saved automatically while listening (see ListenAhead), kept apart from real downloads and
+     * capped at 1 GB, oldest first. Never touches books saved with the Download button.
+     */
+    val listenCache = SimpleCache(File(context.filesDir, "listen"), LeastRecentlyUsedCacheEvictor(LISTEN_CACHE_BYTES), database)
+
+    /** Fetches from the internet and saves into the listening store. */
+    val listenSource: CacheDataSource.Factory = CacheDataSource.Factory()
+        .setCache(listenCache)
+        .setUpstreamDataSourceFactory(http)
+
+    /**
+     * What the player reads: downloaded chapters first, then chapters saved while listening, then the internet
+     * (saving what it plays into the listening store as it goes).
+     */
     val playerSource: CacheDataSource.Factory = CacheDataSource.Factory()
         .setCache(cache)
-        .setUpstreamDataSourceFactory(http)
+        .setUpstreamDataSourceFactory(listenSource)
         .setCacheWriteDataSinkFactory(null)
+
+    /** True when a chapter is completely saved by the Download button. */
+    fun isDownloaded(url: String): Boolean {
+        val length = androidx.media3.datasource.cache.ContentMetadata.getContentLength(cache.getContentMetadata(url))
+        return length > 0 && cache.getCachedBytes(url, 0, length) >= length
+    }
 
     fun download(book: Book) = book.chapters.forEachIndexed { i, chapter ->
         val request = DownloadRequest.Builder(mediaId(book.id, i), chapter.url.toUri()).build()
@@ -98,6 +119,7 @@ class Downloads private constructor(private val context: Context) {
     }.filter { bookIdOf(it) == bookId }
 
     companion object {
+        private const val LISTEN_CACHE_BYTES = 1L shl 30
         @Volatile private var instance: Downloads? = null
         fun get(context: Context) = instance ?: synchronized(this) {
             instance ?: Downloads(context.applicationContext).also { instance = it }
