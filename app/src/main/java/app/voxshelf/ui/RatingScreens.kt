@@ -179,7 +179,7 @@ private fun Thumb(emoji: String, description: String, enabled: Boolean, onClick:
 
 /** The line under a recording on the book page. */
 fun ratingLine(summary: RatingSummary?): String {
-    val liked = summary?.percentLiked ?: return if ((summary?.total ?: 0) > 0) "Not enough ratings yet" else "No recording ratings yet"
+    val liked = summary?.percentLiked ?: return if ((summary?.total ?: 0) > 0) "Not enough ratings yet" else "No ratings yet"
     return "$liked% liked · ${summary.total} ratings"
 }
 

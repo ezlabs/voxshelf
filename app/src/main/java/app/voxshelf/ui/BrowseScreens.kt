@@ -193,7 +193,7 @@ private fun SearchField(query: String, onQuery: (String) -> Unit) {
 
 @Composable
 fun SubjectScreen(catalog: Catalog, language: String?, shelf: String, subject: String, onBack: () -> Unit, onBook: (WorkSummary) -> Unit) {
-    var sort by rememberSaveable { mutableStateOf(Sort.Popular) }
+    var sort by rememberSaveable { mutableStateOf(Sort.Recommended) }
     val works by produceState<List<WorkSummary>?>(null, shelf, subject, sort, language) { value = catalog.works(shelf, subject, sort) }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(end = 20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
@@ -360,7 +360,7 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
                                 listOfNotNull(readerLabel(r), length(r.seconds), "${r.chapters} chapters", r.recorded?.let { "Recorded $it" }).joinToString(" · "),
                                 style = text(13.sp, 400, Lantern.TextMuted),
                             )
-                            Text(ratingLine(summaries[r.id]), style = text(13.sp, 400, Lantern.TextMuted))
+                            Text(listOf(downloadsLabel(r.downloads), ratingLine(summaries[r.id])).joinToString(" · "), style = text(13.sp, 400, Lantern.TextMuted))
                             problemLine(summaries[r.id])?.let { Text(it, style = text(13.sp, 600, Lantern.Gold)) }
                         }
                         Box(
@@ -435,5 +435,13 @@ private fun readerLabel(r: Recording) = when {
     r.solo -> "Solo reader"
     else -> "Group reading"
 } + if (r.abridged) ", abridged" else ""
+
+/** "48k downloads", rounded so the number is easy to compare at a glance. */
+private fun downloadsLabel(n: Int) = when {
+    n >= 1_000_000 -> "%.1fM downloads".format(n / 1_000_000.0).replace(".0M", "M")
+    n >= 1_000 -> "${n / 1_000}k downloads"
+    n == 1 -> "1 download"
+    else -> "$n downloads"
+}
 
 private fun length(seconds: Int) = if (seconds > 0) hoursMinutes(seconds * 1000L) else "Length unknown"

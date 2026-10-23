@@ -36,7 +36,7 @@ data class Recording(
 
 /** A book in a list: its first recording stands in for the rest. */
 enum class Sort(val label: String, val sql: String) {
-    Popular("Popular", "work_downloads DESC"),
+    Recommended("Recommended", "work_score DESC"),
     Newest("Newest", "id DESC"),
     Title("A to Z", "title COLLATE NOCASE"),
 }
@@ -94,7 +94,7 @@ class Catalog(private val context: Context) {
     }
 
     suspend fun works(shelf: String, subject: String, sort: Sort): List<WorkSummary> = query(
-        "SELECT * FROM book WHERE shelf = ? AND ('|' || subjects || '|') LIKE ? AND $langFilter ORDER BY ${sort.sql}, downloads DESC, id",
+        "SELECT * FROM book WHERE shelf = ? AND ('|' || subjects || '|') LIKE ? AND $langFilter ORDER BY ${sort.sql}, score DESC, id",
         shelf, "%|$subject|%", *langArgs().toTypedArray(),
     ) { group(it) }
 
@@ -104,13 +104,13 @@ class Catalog(private val context: Context) {
         val match = terms.joinToString(" ") { "$it*" }
         return query(
             "SELECT b.* FROM book_fts f JOIN book b ON b.id = f.docid WHERE book_fts MATCH ? AND ${langFilter.replace("language", "b.language")} " +
-                "ORDER BY b.work_downloads DESC, b.downloads DESC, b.id LIMIT 300",
+                "ORDER BY b.work_score DESC, b.score DESC, b.id LIMIT 300",
             match, *langArgs().toTypedArray(),
         ) { group(it) }
     }
 
     suspend fun recordings(workId: Int): List<Recording> =
-        query("SELECT * FROM book WHERE work_id = CAST(? AS INTEGER) ORDER BY downloads DESC, id", workId.toString()) { c ->
+        query("SELECT * FROM book WHERE work_id = CAST(? AS INTEGER) ORDER BY score DESC, id", workId.toString()) { c ->
             buildList { while (c.moveToNext()) add(c.toRecording()) }
         }
 

@@ -1,6 +1,8 @@
 """Build the compact on-phone catalog: books only, trimmed descriptions, recordings grouped into works."""
 import gzip
+import datetime
 import json
+import math
 import re
 import sqlite3
 import sys
@@ -29,6 +31,15 @@ def trim(text):
     if len(text) <= DESC_CHARS:
         return text
     return text[:DESC_CHARS].rsplit(" ", 1)[0] + "…"
+
+
+# How far through the year the catalog is built, for working out each recording's age.
+NOW = datetime.date.today().year + datetime.date.today().timetuple().tm_yday / 366
+RECENT_WEIGHT = 0.7
+
+
+def blend(per_year, month):
+    return (1 - RECENT_WEIGHT) * math.log1p(per_year) + RECENT_WEIGHT * math.log1p(month * 12)
 
 
 rows = []
@@ -71,9 +82,19 @@ for b in books:
     row["downloads"], row["month"] = pop[:2]
     # The year LibriVox released the recording: from the Internet Archive, or the YYMM in the archive id.
     released = (pop[3] if len(pop) > 3 else "")[:4]
-    if not released and (m := re.search(r"_(\d{2})(\d{2})_librivox", archive_id)) and 1 <= int(m.group(2)) <= 12:
+    m = re.search(r"_(\d{2})(\d{2})_librivox", archive_id)
+    m = m if m and 1 <= int(m.group(2)) <= 12 else None
+    if not released and m:
         released = f"20{m.group(1)}"
     row["recorded"] = int(released) if released.isdigit() else None
+    # Release date as a fractional year (e.g. 2015.5), for working out how old the recording is.
+    full = pop[3] if len(pop) > 3 else ""
+    if re.match(r"\d{4}-\d{2}", full or ""):
+        row["_released"] = int(full[:4]) + (int(full[5:7]) - 0.5) / 12
+    elif m:
+        row["_released"] = 2000 + int(m.group(1)) + (int(m.group(2)) - 0.5) / 12
+    else:
+        row["_released"] = (row["recorded"] or 2010) + 0.5
     # The year of the edition the volunteer read from; the work's year is worked out below.
     year = str(b.get("copyright_year") or "")
     row["_year"] = int(year) if year.isdigit() and 0 < int(year) else None
@@ -87,6 +108,15 @@ for work_id, members in enumerate(works.values(), 1):
     # Recordings of the same book share a shelf and subjects, so every version shows up in the same places.
     shelf, subjects = resolve(merge(r.pop("_cands") for r in members))
     work_downloads = sum(r["downloads"] for r in members)
+    # "Recommended": mostly last month's downloads, plus downloads per year since release, so newer
+    # recordings aren't buried under ones that have simply been around longer.
+    for r in members:
+        age = NOW - r.pop("_released")
+        r["_per_year"] = r["downloads"] / max(age, 1)
+        # New releases get a burst of downloads in their first weeks, so don't treat that month as typical.
+        r["_recent"] = r["month"] if age >= 0.25 else r["downloads"] / 12
+        r["score"] = round(blend(r["_per_year"], r["_recent"]), 4)
+    work_score = round(blend(sum(r.pop("_per_year") for r in members), sum(r.pop("_recent") for r in members)), 4)
     work_month = sum(r["month"] for r in members)
     # Volunteers often read a later reprint, so the earliest year across recordings is the best guess at
     # when the book was written. Drop years after a recording was made, which can't be right.
@@ -95,6 +125,7 @@ for work_id, members in enumerate(works.values(), 1):
     for r in members:
         r["work_id"] = work_id
         r["work_downloads"] = work_downloads
+        r["work_score"] = work_score
         r["work_month"] = work_month
         r["year"] = work_year
         r.pop("_year")
