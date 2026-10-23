@@ -41,6 +41,8 @@ CATEGORIES = {
                               "Periodicals & Magazines", "*Non-fiction"],
 }
 
+FALLBACK = "Everything else"
+
 SHORT_WORKS = {"Short Stories", "Short works", "Essays & Short Works", "Short non-fiction"}
 COLLECTIONS = {"Anthologies", "Literary Collections", "Single Author Collections",
                "Multi-version (Weekly and Fortnightly poetry)", "Periodicals & Magazines"}
@@ -59,6 +61,8 @@ def classify(genres, copyright_year):
         for c in _genre_to_categories.get(g, []):
             if c not in categories:
                 categories.append(c)
+    if not categories:
+        categories.append(FALLBACK)
     era = next((ERAS[g] for g in genres if g in ERAS), None)
     if era is None and str(copyright_year or "").isdigit():
         year = int(copyright_year)
