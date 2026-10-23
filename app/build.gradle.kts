@@ -18,7 +18,7 @@ android {
     buildTypes {
         debug {
             // The ratings server running on this computer, reached through "adb reverse tcp:8787 tcp:8787".
-            buildConfigField("String", "RATINGS_URL", "\"http://127.0.0.1:8787\"")
+            buildConfigField("String", "RATINGS_URL", "\"https://voxshelf-ratings.beneichholz9.workers.dev\"")
             manifestPlaceholders["cleartext"] = "true"
         }
         release {
