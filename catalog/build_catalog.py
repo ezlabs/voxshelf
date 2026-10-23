@@ -14,6 +14,7 @@ VARIANT = re.compile(r"\s*\(([^)]*\b(?:version \d+|dramatic reading|abridged)\b[
 
 raw_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "raw")
 out = Path(sys.argv[2] if len(sys.argv) > 2 else "catalog.db")
+version = sys.argv[3] if len(sys.argv) > 3 else "dev"
 books = [b for f in sorted(raw_dir.glob("page_*.json")) for b in json.loads(f.read_text(encoding="utf-8"))]
 
 
@@ -70,6 +71,8 @@ cols = list(rows[0].keys())
 con.execute(f"CREATE TABLE book ({', '.join(c + (' INTEGER PRIMARY KEY' if c == 'id' else '') for c in cols)})")
 con.executemany(f"INSERT INTO book VALUES ({','.join('?' * len(cols))})", [tuple(r[c] for c in cols) for r in rows])
 con.execute("CREATE INDEX book_work ON book(work_id)")
+con.execute("CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT)")
+con.execute("INSERT INTO meta VALUES ('version', ?)", (version,))
 con.execute("CREATE VIRTUAL TABLE book_fts USING fts5(title, authors, content='book', content_rowid='id')")
 con.execute("INSERT INTO book_fts(book_fts) VALUES ('rebuild')")
 con.commit()
