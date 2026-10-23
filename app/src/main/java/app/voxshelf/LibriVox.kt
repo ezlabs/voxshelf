@@ -3,6 +3,7 @@ package app.voxshelf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
 
@@ -25,10 +26,19 @@ object LibriVox {
     // LibriVox marks repeat recordings in the title, e.g. "(Version 2)"; the app shows those details separately.
     private val VARIANT_LABEL = Regex("""\s*\([^)]*\b(version \d+|dramatic reading|abridged)\b[^)]*\)\s*""", RegexOption.IGNORE_CASE)
 
-    suspend fun book(id: Int): Book = withContext(Dispatchers.IO) {
-        val connection = URL("$API?id=$id&extended=1&format=json").openConnection() as HttpURLConnection
-        connection.setRequestProperty("User-Agent", "Voxshelf/0.1 (open source audiobook app)")
-        val body = connection.inputStream.bufferedReader().use { it.readText() }
+    /** Keeps a copy of each book's details in [dir] so saved books still open without internet. */
+    suspend fun book(id: Int, dir: File): Book = withContext(Dispatchers.IO) {
+        val saved = File(dir, "books/$id.json")
+        val body = try {
+            val connection = URL("$API?id=$id&extended=1&format=json").openConnection() as HttpURLConnection
+            connection.setRequestProperty("User-Agent", "Voxshelf/0.1 (open source audiobook app)")
+            connection.inputStream.bufferedReader().use { it.readText() }.also {
+                saved.parentFile?.mkdirs()
+                saved.writeText(it)
+            }
+        } catch (e: java.io.IOException) {
+            if (saved.exists()) saved.readText() else throw e
+        }
         val json = JSONObject(body).getJSONArray("books").getJSONObject(0)
 
         val authors = json.getJSONArray("authors")

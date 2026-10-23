@@ -23,6 +23,11 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import app.voxshelf.BookDownload
+import app.voxshelf.Downloads
+import app.voxshelf.LibriVox
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -196,6 +201,7 @@ fun LibraryActions(library: Library, book: Recording) {
             Status.Finished -> Pill("Finished ✓", selected = true) { scope.launch { library.setStatus(book.workId, book.id, null) } }
         }
         Pill("Add to list") { choosingLists = true }
+        DownloadPill(book)
     }
 
     if (choosingLists) {
@@ -231,6 +237,61 @@ fun LibraryActions(library: Library, book: Recording) {
             creating = false
         }
     }
+}
+
+/** Save a book for offline listening, watch it download, or remove it again. */
+@Composable
+private fun DownloadPill(book: Recording) {
+    val context = LocalContext.current
+    val downloads = remember { Downloads.get(context) }
+    val scope = rememberCoroutineScope()
+    var status by remember { mutableStateOf<BookDownload>(BookDownload.None) }
+    var starting by remember(book.id) { mutableStateOf(false) }
+    var removing by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf(false) }
+    LaunchedEffect(book.id) {
+        while (true) {
+            status = downloads.status(book.id)
+            if (status != BookDownload.None) starting = false
+            delay(1_000)
+        }
+    }
+
+    fun start() {
+        starting = true
+        scope.launch {
+            try {
+                downloads.download(LibriVox.book(book.id, context.filesDir))
+            } catch (e: Exception) {
+                starting = false
+                error = true
+            }
+        }
+    }
+
+    when (val s = status) {
+        BookDownload.None -> Pill(if (starting) "Downloading…" else "Download") { if (!starting) start() }
+        is BookDownload.Downloading -> Pill("Downloading ${s.percent}%") { removing = true }
+        BookDownload.Done -> Pill("Downloaded ✓", selected = true) { removing = true }
+        BookDownload.Failed -> Pill("Download failed. Retry") { downloads.remove(book.id); start() }
+    }
+
+    val done = status == BookDownload.Done
+    if (removing) AlertDialog(
+        onDismissRequest = { removing = false },
+        containerColor = Lantern.Surface,
+        title = { Text(if (done) "Remove download?" else "Stop downloading?", style = text(20.sp, 800)) },
+        text = { Text("You can still stream it, or download it again later.", style = text(15.sp, 400, Lantern.TextSoft)) },
+        confirmButton = { DialogButton(if (done) "Remove" else "Stop") { downloads.remove(book.id); removing = false } },
+        dismissButton = { DialogButton("Cancel") { removing = false } },
+    )
+    if (error) AlertDialog(
+        onDismissRequest = { error = false },
+        containerColor = Lantern.Surface,
+        title = { Text("Couldn't start the download", style = text(20.sp, 800)) },
+        text = { Text("Check your internet connection and try again.", style = text(15.sp, 400, Lantern.TextSoft)) },
+        confirmButton = { DialogButton("OK") { error = false } },
+    )
 }
 
 @Composable

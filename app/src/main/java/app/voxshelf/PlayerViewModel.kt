@@ -111,7 +111,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
         lastBook.edit().putInt("id", bookId).apply()
         if (_state.value.book?.id != bookId) _state.update { PlayerState() }
         val book = try {
-            LibriVox.book(bookId)
+            LibriVox.book(bookId, getApplication<Application>().filesDir)
         } catch (e: Exception) {
             _state.update { it.copy(error = "Couldn't load this book. Check your internet connection.") }
             return

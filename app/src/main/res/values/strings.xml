@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Voxshelf</string>
+    <string name="downloads_channel">Downloads</string>
+    <string name="downloading">Saving books for offline listening</string>
 </resources>

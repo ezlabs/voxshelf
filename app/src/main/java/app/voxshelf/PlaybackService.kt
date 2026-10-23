@@ -6,6 +6,7 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 
@@ -13,6 +14,7 @@ import androidx.media3.session.MediaSessionService
  * Plays audio in the background and powers the lock screen, notification,
  * headphone and Bluetooth controls. Saves the listening spot as it goes.
  */
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PlaybackService : MediaSessionService() {
     private var session: MediaSession? = null
     private lateinit var positions: PositionStore
@@ -29,6 +31,7 @@ class PlaybackService : MediaSessionService() {
         super.onCreate()
         positions = PositionStore(this)
         val player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(Downloads.get(this).playerSource))
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
