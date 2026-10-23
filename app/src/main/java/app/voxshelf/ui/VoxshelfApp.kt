@@ -51,14 +51,14 @@ private sealed interface Screen {
     data class List(val list: UserList) : Screen
 }
 
-private enum class Tab(val label: String) { Browse("Browse"), Library("Library") }
+private enum class Tab(val label: String) { Library("Library"), Browse("Browse") }
 
 @Composable
 fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
     val context = LocalContext.current
     val catalog = remember { Catalog.get(context) }
     val library = remember { Library.get(context) }
-    var tab by rememberSaveable { mutableStateOf(Tab.Browse) }
+    var tab by rememberSaveable { mutableStateOf(Tab.Library) }
     val stack = remember { mutableStateListOf<Screen>() }
     var query by rememberSaveable { mutableStateOf("") }
     var language by remember { mutableStateOf(catalog.language) }
@@ -81,6 +81,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                             catalog, library,
                             onBook = { stack += Screen.Book(it) },
                             onList = { stack += Screen.List(it) },
+                            onBrowse = { tab = Tab.Browse },
                         ) else BrowseScreen(
                             catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },

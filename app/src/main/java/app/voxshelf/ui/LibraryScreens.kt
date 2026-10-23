@@ -55,7 +55,7 @@ import kotlinx.coroutines.launch
 private const val LISTS_TAB = "Lists"
 
 @Composable
-fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> Unit, onList: (UserList) -> Unit) {
+fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> Unit, onList: (UserList) -> Unit, onBrowse: () -> Unit) {
     val tabs = Status.entries.map { it.label } + LISTS_TAB
     var tab by rememberSaveable { mutableStateOf(tabs.first()) }
     val changes by library.changes.collectAsState()
@@ -96,13 +96,16 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
                 value = library.entries(status).mapNotNull { catalog.recording(it.recordingId) }
             }
             books?.let { list ->
-                if (list.isEmpty()) Empty(
-                    when (status) {
-                        Status.Listening -> "Books you start will show up here."
-                        Status.Want -> "Tap \"Want to listen\" on any book to save it here."
-                        Status.Finished -> "Books you finish will show up here."
-                    }
-                ) else BookRows(list, status, onBook)
+                if (list.isEmpty()) Column {
+                    Empty(
+                        when (status) {
+                            Status.Listening -> "Books you start will show up here."
+                            Status.Want -> "Tap \"Want to listen\" on any book to save it here."
+                            Status.Finished -> "Books you finish will show up here."
+                        }
+                    )
+                    if (status == Status.Listening) Row(Modifier.padding(horizontal = 20.dp)) { Pill("Find something to listen to", onClick = onBrowse) }
+                } else BookRows(list, status, onBook)
             }
         }
     }
@@ -115,7 +118,8 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
 
 @Composable
 private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: Int) -> Unit) {
-    val positions = PositionStore(LocalContext.current)
+    val context = LocalContext.current
+    val positions = PositionStore(context)
     LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
         items(books, key = { it.id }) { r ->
             Row(
@@ -128,11 +132,11 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
                     Text(r.title, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
                     Text(r.authors.ifBlank { "Various authors" }, style = text(14.sp, 600, Lantern.TextSoft), maxLines = 1)
                     val saved = positions.load(r.id)
+                    val progress by produceState<String?>(null, r.id, saved) {
+                        if (status == Status.Listening && saved != null) value = progressLine(LibriVox.saved(r.id, context.filesDir), saved, r)
+                    }
                     Text(
-                        when {
-                            status == Status.Listening && saved != null -> "Chapter ${saved.chapter + 1} of ${r.chapters}"
-                            else -> r.readers
-                        },
+                        progress ?: r.readers,
                         style = text(13.sp, 600, Lantern.TextMuted),
                         maxLines = 1,
                     )
@@ -140,6 +144,15 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
             }
         }
     }
+}
+
+/** "42% · 3h 10m left", worked out from each chapter's length. Falls back to the chapter when lengths aren't known. */
+private fun progressLine(book: app.voxshelf.Book?, saved: app.voxshelf.SavedPosition, r: Recording): String {
+    val chapters = book?.chapters
+    val totalMs = chapters?.sumOf { it.seconds } ?.times(1000L) ?: 0L
+    if (chapters == null || totalMs <= 0) return "Chapter ${saved.chapter + 1} of ${r.chapters}"
+    val doneMs = (chapters.take(saved.chapter).sumOf { it.seconds } * 1000L + saved.positionMs).coerceIn(0, totalMs)
+    return "${(doneMs * 100 / totalMs).toInt()}% · ${hoursMinutes(totalMs - doneMs)} left"
 }
 
 @Composable

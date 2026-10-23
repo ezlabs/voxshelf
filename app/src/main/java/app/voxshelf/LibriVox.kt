@@ -39,6 +39,15 @@ object LibriVox {
         } catch (e: java.io.IOException) {
             if (saved.exists()) saved.readText() else throw e
         }
+        parse(id, body)
+    }
+
+    /** The copy saved when you last opened this book, without going online. Null if you never have. */
+    suspend fun saved(id: Int, dir: File): Book? = withContext(Dispatchers.IO) {
+        File(dir, "books/$id.json").takeIf { it.exists() }?.let { runCatching { parse(id, it.readText()) }.getOrNull() }
+    }
+
+    private fun parse(id: Int, body: String): Book {
         val json = JSONObject(body).getJSONArray("books").getJSONObject(0)
 
         val authors = json.getJSONArray("authors")
@@ -59,6 +68,6 @@ object LibriVox {
             )
         }
         val title = json.optString("title").replace(VARIANT_LABEL, " ").trim()
-        Book(id, title, author, readers.filter { it.isNotBlank() }, chapters)
+        return Book(id, title, author, readers.filter { it.isNotBlank() }, chapters)
     }
 }

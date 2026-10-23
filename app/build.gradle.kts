@@ -17,8 +17,8 @@ android {
 
     buildTypes {
         debug {
-            // The ratings server running on this computer, as the emulator sees it.
-            buildConfigField("String", "RATINGS_URL", "\"http://10.0.2.2:8787\"")
+            // The ratings server running on this computer, reached through "adb reverse tcp:8787 tcp:8787".
+            buildConfigField("String", "RATINGS_URL", "\"http://127.0.0.1:8787\"")
             manifestPlaceholders["cleartext"] = "true"
         }
         release {
