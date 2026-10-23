@@ -7,6 +7,8 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+from categories import classify
+
 DESC_CHARS = 300
 VARIANT = re.compile(r"\s*\(([^)]*\b(?:version \d+|dramatic reading|abridged)\b[^)]*)\)\s*", re.I)
 
@@ -54,6 +56,7 @@ for b in books:
         "abridged": 1 if "abridged" in label else 0,
         "cover": b.get("coverart_thumbnail"),
     }
+    row.update(classify([g.get("name") or "" for g in (b.get("genres") or [])], b.get("copyright_year")))
     rows.append(row)
     works[key].append(row)
 
