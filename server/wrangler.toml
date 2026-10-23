@@ -10,3 +10,9 @@ database_id = "5c081283-d64f-4871-bcc1-ffb27db02882"
 [[r2_buckets]]
 binding = "COVERS"
 bucket_name = "voxshelf-covers"
+
+# At most 10 ratings a minute from one internet address (Cloudflare only allows 10s or 60s windows).
+[[ratelimits]]
+name = "RATINGS_LIMIT"
+namespace_id = "1001"
+simple = { limit = 10, period = 60 }

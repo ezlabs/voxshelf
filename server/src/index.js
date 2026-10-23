@@ -14,7 +14,12 @@ export default {
     if (cover) return covers(request, env, `${cover[1]}.webp`);
     if (url.pathname !== "/ratings") return json({ error: "not found" }, 404);
     try {
-      if (request.method === "POST") return await save(await request.json(), env);
+      if (request.method === "POST") {
+        // Stops one address from flooding in fake ratings. A real person rates far less often than this.
+        const ip = request.headers.get("cf-connecting-ip") || "unknown";
+        if (env.RATINGS_LIMIT && !(await env.RATINGS_LIMIT.limit({ key: ip })).success) return json({ error: "too many ratings" }, 429);
+        return await save(await request.json(), env);
+      }
       if (request.method === "GET") return await totals(url.searchParams.get("ids") || "", env);
       return json({ error: "method not allowed" }, 405);
     } catch (e) {
