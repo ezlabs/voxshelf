@@ -100,19 +100,48 @@ fun Cover(title: String, author: String, size: Dp, art: String? = null, glow: Bo
     }
 }
 
-/** Covers 80dp and up try the full-size art first, since the small version looks blurry there. Some recordings only have the small one. */
+/**
+ * The small art (150px) shows first because it arrives sooner. Covers 80dp and up then lay the full-size art
+ * over it, since the small one looks blurry there. Some recordings only have the small one; then it just stays.
+ */
 @Composable
 private fun CoverArt(small: String, big: Boolean, title: String, modifier: Modifier) {
-    val choices = remember(small, big) { listOfNotNull(small.replace("_thumb", "").takeIf { big && it != small }, small) }
-    var tried by remember(choices) { mutableIntStateOf(0) }
-    coil3.compose.AsyncImage(
-        model = choices[tried],
-        contentDescription = "Cover of $title",
-        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-        onError = { if (tried < choices.lastIndex) tried++ },
-        modifier = modifier,
-    )
+    Box(modifier) {
+        coil3.compose.AsyncImage(
+            model = small,
+            contentDescription = "Cover of $title",
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.matchParentSize(),
+        )
+        val full = fullCover(small)
+        if (big && full != small) coil3.compose.AsyncImage(
+            model = full,
+            contentDescription = null,
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+            modifier = Modifier.matchParentSize(),
+        )
+    }
 }
+
+fun fullCover(small: String) = small.replace("_thumb", "")
+
+/** Starts loading the covers of the next few books past [lastVisible], so they're ready when you scroll to them. */
+@Composable
+fun PrefetchCovers(works: List<app.voxshelf.WorkSummary>, big: Boolean = true, lastVisible: () -> Int) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // Watched outside composition, so scrolling doesn't redraw the list.
+    androidx.compose.runtime.LaunchedEffect(works) {
+        val loader = coil3.SingletonImageLoader.get(context)
+        androidx.compose.runtime.snapshotFlow(lastVisible).collect { last ->
+            works.drop(last + 1).take(PREFETCH).mapNotNull { it.first.cover }.forEach { small ->
+            loader.enqueue(coil3.request.ImageRequest.Builder(context).data(small).build())
+                if (big) loader.enqueue(coil3.request.ImageRequest.Builder(context).data(fullCover(small)).build())
+            }
+        }
+    }
+}
+
+private const val PREFETCH = 4
 
 @Composable
 fun LanternIcon(size: Dp) {

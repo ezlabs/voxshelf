@@ -168,7 +168,10 @@ private fun ShelfRow(title: String, load: suspend () -> List<WorkSummary>, langu
                 modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClick = onSeeAll).padding(12.dp),
             )
         }
+        val rowState = androidx.compose.foundation.lazy.rememberLazyListState()
+        PrefetchCovers(works) { rowState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
         LazyRow(
+            state = rowState,
             contentPadding = PaddingValues(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.height(232.dp),
@@ -409,7 +412,10 @@ private fun ViewToggle(gallery: androidx.compose.runtime.MutableState<Boolean>) 
 @Composable
 private fun BookList(works: List<WorkSummary>, gallery: Boolean, onBook: (WorkSummary) -> Unit) {
     if (gallery) {
+        val gridState = androidx.compose.foundation.lazy.grid.rememberLazyGridState()
+        PrefetchCovers(works) { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
         LazyVerticalGrid(
+            state = gridState,
             columns = GridCells.Fixed(2),
             contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
             horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -427,7 +433,9 @@ private fun BookList(works: List<WorkSummary>, gallery: Boolean, onBook: (WorkSu
         }
         return
     }
-    LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+    val listState = androidx.compose.foundation.lazy.rememberLazyListState()
+    PrefetchCovers(works) { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
+    LazyColumn(state = listState, contentPadding = PaddingValues(bottom = 24.dp)) {
         items(works, key = { it.first.workId }) { work ->
             val r = work.first
             Row(
