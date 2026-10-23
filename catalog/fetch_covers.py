@@ -1,7 +1,7 @@
 """Download each recording's LibriVox cover once and save a small copy (400px WebP) for fast loading in the app.
 
-Covers already saved are skipped, so the nightly job only fetches new recordings.
-Arguments: catalog.db out_dir
+Covers already saved, or listed in the optional uploaded.txt, are skipped, so the nightly job only fetches new recordings.
+Arguments: catalog.db out_dir [uploaded.txt]
 """
 import io
 import sqlite3
@@ -16,6 +16,7 @@ SIZE = 400
 db = sqlite3.connect(sys.argv[1] if len(sys.argv) > 1 else "catalog.db")
 out = Path(sys.argv[2] if len(sys.argv) > 2 else "covers")
 out.mkdir(exist_ok=True)
+uploaded = set(Path(sys.argv[3]).read_text().split()) if len(sys.argv) > 3 and Path(sys.argv[3]).exists() else set()
 
 
 def fetch(url):
@@ -26,7 +27,7 @@ def fetch(url):
 def save(row):
     rid, thumb = row
     path = out / f"{rid}.webp"
-    if path.exists():
+    if path.exists() or str(rid) in uploaded:
         return "skipped"
     # The full-size art looks sharp on big screens; some recordings only have the small one.
     for url in (thumb.replace("_thumb", ""), thumb):

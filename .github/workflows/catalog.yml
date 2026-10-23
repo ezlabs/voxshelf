@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p prev
-          gh release download catalog -D prev -p catalog.db.gz -p manifest.json -p openlibrary.json || echo "No previous catalog"
+          gh release download catalog -D prev -p catalog.db.gz -p manifest.json -p openlibrary.json -p uploaded.txt || echo "No previous catalog"
           if [ -f prev/catalog.db.gz ]; then gunzip -k prev/catalog.db.gz; fi
       - name: Fetch Open Library ratings (a slice each night)
         run: |
@@ -38,6 +38,18 @@ jobs:
           mkdir -p out
           python catalog/build_catalog.py catalog/raw out/catalog.db "$VERSION" catalog/popularity.json catalog/openlibrary.json
           python catalog/diff_catalog.py prev/catalog.db out/catalog.db out "$VERSION" prev/manifest.json
+      - name: Shrink and upload covers for new recordings
+        env:
+          COVER_UPLOAD_KEY: ${{ secrets.COVER_UPLOAD_KEY }}
+        run: |
+          if [ -z "$COVER_UPLOAD_KEY" ]; then echo "No upload key; skipping covers"; exit 0; fi
+          pip install pillow
+          if [ -f prev/uploaded.txt ]; then cp prev/uploaded.txt catalog/uploaded.txt; fi
+          python catalog/fetch_covers.py out/catalog.db covers catalog/uploaded.txt
+          python catalog/upload_covers.py covers catalog/uploaded.txt
+          cp catalog/uploaded.txt out/uploaded.txt
+      - name: Compress catalog
+        run: |
           gzip -9 out/catalog.db
           cp catalog/openlibrary.json out/openlibrary.json 2>/dev/null || true
       - name: Publish to the "catalog" release
