@@ -111,7 +111,7 @@ function json(data, status = 200, headers = {}) {
 async function covers(request, env, key) {
   if (request.method === "PUT") {
     if (!env.UPLOAD_KEY || request.headers.get("x-upload-key") !== env.UPLOAD_KEY) return json({ error: "forbidden" }, 403);
-    await env.COVERS.put(key, request.body, { httpMetadata: { contentType: "image/webp" } });
+    await env.COVERS.put(key, request.body, { httpMetadata: { contentType: "image/webp", cacheControl: "public, max-age=31536000, immutable" } });
     return json({ ok: true });
   }
   if (request.method !== "GET") return json({ error: "method not allowed" }, 405);

@@ -9,7 +9,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-SERVER = "https://voxshelf-ratings.beneichholz9.workers.dev/covers"
+SERVER = "https://api.voxshelf.app/covers"
 covers = Path(sys.argv[1] if len(sys.argv) > 1 else "covers")
 done_file = Path(sys.argv[2] if len(sys.argv) > 2 else "uploaded.txt")
 key = os.environ["COVER_UPLOAD_KEY"]

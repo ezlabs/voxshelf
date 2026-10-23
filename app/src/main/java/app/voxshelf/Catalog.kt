@@ -46,7 +46,7 @@ data class Art(val id: Int, val thumb: String) {
     val full get() = thumb.replace("_thumb", "")
 
     companion object {
-        const val COVERS = "https://voxshelf-ratings.beneichholz9.workers.dev/covers"
+        const val COVERS = "https://covers.voxshelf.app"
     }
 }
 
