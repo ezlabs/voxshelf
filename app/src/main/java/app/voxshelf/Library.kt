@@ -12,7 +12,7 @@ import kotlinx.coroutines.withContext
 
 enum class Status(val label: String) {
     Listening("Listening"),
-    Want("Want to listen"),
+    Want("To listen"),
     Finished("Finished"),
 }
 

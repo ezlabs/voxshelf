@@ -52,9 +52,10 @@ def lookup(title, author):
     return [best.get("key"), best.get("ratings_count") or 0, round(best.get("ratings_average") or 0, 2)]
 
 
-works = db.execute(
-    "SELECT title, authors FROM book GROUP BY work_id ORDER BY MAX(work_score) DESC"
-).fetchall()
+# Older catalogs have no recommendation score yet; fall back to download counts.
+columns = {row[1] for row in db.execute("PRAGMA table_info(book)")}
+order = "MAX(work_score)" if "work_score" in columns else "SUM(downloads)"
+works = db.execute(f"SELECT title, authors FROM book GROUP BY work_id ORDER BY {order} DESC").fetchall()
 now = time.time()
 todo = [w for w in works if key(*w) not in cache]
 done = failed = 0

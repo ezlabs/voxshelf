@@ -53,14 +53,16 @@ import app.voxshelf.UserList
 import kotlinx.coroutines.launch
 
 private const val LISTS_TAB = "Lists"
+private const val DOWNLOADED_TAB = "Downloaded"
 
 @Composable
 fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> Unit, onList: (UserList) -> Unit, onBrowse: () -> Unit) {
-    val tabs = Status.entries.map { it.label } + LISTS_TAB
+    val tabs = Status.entries.map { it.label } + DOWNLOADED_TAB + LISTS_TAB
     var tab by rememberSaveable { mutableStateOf(tabs.first()) }
     val changes by library.changes.collectAsState()
     var creating by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     Column(Modifier.fillMaxSize()) {
         Text("Shelf", style = text(30.sp, 800), modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 12.dp))
@@ -90,6 +92,15 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
                 }
                 if (lists.isEmpty()) item { Empty("Make lists for anything you like: a road trip, bedtime, books to share.") }
             }
+        } else if (tab == DOWNLOADED_TAB) {
+            val downloads = remember { Downloads.get(context) }
+            val books by produceState<List<Recording>?>(null, changes) {
+                value = downloads.bookIds().mapNotNull { catalog.recording(it) }
+            }
+            books?.let { list ->
+                if (list.isEmpty()) Empty("Books you download for offline listening will show up here. Tap \"Download\" on any book.")
+                else BookRows(list, null, onBook)
+            }
         } else {
             val status = Status.entries.first { it.label == tab }
             val books by produceState<List<Recording>?>(null, status, changes) {
@@ -100,7 +111,7 @@ fun LibraryScreen(catalog: Catalog, library: Library, onBook: (workId: Int) -> U
                     Empty(
                         when (status) {
                             Status.Listening -> "Books you start will show up here."
-                            Status.Want -> "Tap \"Want to listen\" on any book to save it here."
+                            Status.Want -> "Tap \"To listen\" on any book to save it here."
                             Status.Finished -> "Books you finish will show up here."
                         }
                     )
@@ -140,6 +151,8 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
                         style = text(13.sp, 600, Lantern.TextMuted),
                         maxLines = 1,
                     )
+                    val downloaded by produceState(false, r.id) { value = Downloads.get(context).status(r.id) == BookDownload.Done }
+                    if (downloaded) Text("Downloaded ✓", style = text(13.sp, 800, Lantern.Gold), modifier = Modifier.padding(top = 2.dp))
                 }
             }
         }
@@ -208,7 +221,7 @@ fun LibraryActions(library: Library, book: Recording) {
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         when (status) {
-            null -> Pill("Want to listen") { scope.launch { library.setStatus(book.workId, book.id, Status.Want) } }
+            null -> Pill("To listen") { scope.launch { library.setStatus(book.workId, book.id, Status.Want) } }
             Status.Want -> Pill("Saved ✓", selected = true) { scope.launch { library.setStatus(book.workId, book.id, null) } }
             Status.Listening -> Pill("Mark finished") { scope.launch { library.setStatus(book.workId, book.id, Status.Finished) } }
             Status.Finished -> Pill("Finished ✓", selected = true) { scope.launch { library.setStatus(book.workId, book.id, null) } }

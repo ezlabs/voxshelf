@@ -15,7 +15,7 @@ Website: [voxshelf.app](https://voxshelf.app)
 - **Browse and search** the whole LibriVox catalog, offline: rows by subject, Popular, New, Surprise me, and filters for length, reader type and era.
 - **Pick the best recording.** Many books have several readings; Voxshelf ranks them by how much they're listened to and shows listener ratings and Open Library star ratings.
 - **Listen anywhere:** background playback with lock screen and Bluetooth controls, downloads for offline listening (with a Wi-Fi-only option), playback speed, a sleep timer, and smart rewind after a long pause.
-- **Your shelf:** Listening, Want to listen, Finished and your own lists, with progress and time left for each book.
+- **Your shelf:** Listening, To listen, Finished, Downloaded and your own lists, with progress and time left for each book.
 
 Voxshelf is an independent app and isn't made or endorsed by LibriVox. If you enjoy the books, consider [volunteering with LibriVox](https://librivox.org/pages/volunteer-for-librivox/), or [donating to the Internet Archive](https://archive.org/donate), which hosts the recordings (LibriVox itself no longer takes donations).
 

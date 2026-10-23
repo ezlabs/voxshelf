@@ -114,6 +114,19 @@ class Downloads private constructor(private val context: Context) {
         }
     }
 
+    /** Recordings with any saved chapters (finished or still downloading), most recently downloaded first. */
+    suspend fun bookIds(): List<Int> = withContext(Dispatchers.IO) {
+        val latest = mutableMapOf<Int, Long>()
+        manager.downloadIndex.getDownloads().use {
+            while (it.moveToNext()) {
+                val d = it.download
+                val id = bookIdOf(d.request.id) ?: continue
+                latest[id] = maxOf(latest[id] ?: 0L, d.startTimeMs)
+            }
+        }
+        latest.entries.sortedByDescending { it.value }.map { it.key }
+    }
+
     private fun savedIds(bookId: Int) = buildList {
         manager.downloadIndex.getDownloads().use { while (it.moveToNext()) add(it.download.request.id) }
     }.filter { bookIdOf(it) == bookId }

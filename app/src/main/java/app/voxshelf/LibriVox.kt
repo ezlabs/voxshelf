@@ -72,32 +72,8 @@ object LibriVox {
     }
 }
 
-/**
- * A tidy chapter name from LibriVox's raw section title: drops track numbers ("05 - ") and leading
- * chapter labels when a real name follows, fixes ALL CAPS, and falls back to "Chapter N" when there's no name.
- */
+/** LibriVox's chapter title as written, with spacing tidied; "Chapter N" only when the title is missing. */
 fun chapterName(raw: String?, index: Int): String {
-    var t = raw.orEmpty().replace(Regex("""\s+"""), " ").trim()
-    if (t.isEmpty() || t == "null" || Regex("""(?i)^(section|secci.n|track|part)\s*\d+$""").matches(t)) return "Chapter ${index + 1}"
-    // "05 - Name", "5. Name", "XV. Name"
-    t = t.replace(Regex("""^(\d{1,3}|[IVXLC]{1,7})\s*[-.:)]\s+(?=\S)"""), "")
-    // "Chapter 3: Name", "Chapter XX - Name", "Chapter 3 Name" (only when a name follows)
-    t = t.replace(Regex("""(?i)^(chapter\s*|chap\.\s*|chap\s+|ch\.\s*|ch\s+)([0-9]+|[ivxlc]+)\s*[-–—.:]?\s+(?=[A-Za-z"'“‘])"""), "")
-    if (t.length > 3 && t == t.uppercase() && t.any { it.isLetter() }) {
-        t = t.lowercase().split(" ").joinToString(" ") { w -> w.replaceFirstChar { it.uppercase() } }
-    }
-    // "Chapter XX" on its own reads better as "Chapter 20".
-    Regex("""(?i)^chapter\s+([ivxlc]+)$""").find(t)?.let { m -> roman(m.groupValues[1])?.let { return "Chapter $it" } }
-    return t.ifBlank { "Chapter ${index + 1}" }
-}
-
-private fun roman(s: String): Int? {
-    val values = mapOf('i' to 1, 'v' to 5, 'x' to 10, 'l' to 50, 'c' to 100)
-    var total = 0
-    s.lowercase().forEachIndexed { i, ch ->
-        val v = values[ch] ?: return null
-        val next = s.lowercase().getOrNull(i + 1)?.let { values[it] } ?: 0
-        total += if (v < next) -v else v
-    }
-    return total.takeIf { it > 0 }
+    val t = raw.orEmpty().replace(Regex("""\s+"""), " ").trim()
+    return if (t.isEmpty() || t == "null") "Chapter ${index + 1}" else t
 }
