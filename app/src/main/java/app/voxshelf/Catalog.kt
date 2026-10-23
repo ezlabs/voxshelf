@@ -108,15 +108,27 @@ class Catalog(private val context: Context) {
 
     private fun open(): SQLiteDatabase {
         val file = File(context.filesDir, "catalog.db")
-        // Copy the bundled catalog on first launch and whenever the app itself is updated.
+        // A newer catalog downloaded in the background (see CatalogUpdates) takes over on the next launch.
+        val next = File(context.filesDir, CatalogUpdates.NEXT)
+        if (next.exists()) {
+            file.delete()
+            next.renameTo(file)
+        }
+        // Copy the bundled catalog on first launch, and after an app update if it's newer than the one we have.
         val installedAt = context.packageManager.getPackageInfo(context.packageName, 0).lastUpdateTime
         val prefs = context.getSharedPreferences("catalog", Context.MODE_PRIVATE)
         if (!file.exists() || prefs.getLong("copiedFor", -1) != installedAt) {
-            context.assets.open("catalog.db").use { input -> file.outputStream().use { input.copyTo(it) } }
+            val bundled = File(context.cacheDir, "bundled.db")
+            context.assets.open("catalog.db").use { input -> bundled.outputStream().use { input.copyTo(it) } }
+            if (!file.exists() || versionOf(bundled) > versionOf(file)) bundled.copyTo(file, overwrite = true)
+            bundled.delete()
             prefs.edit().putLong("copiedFor", installedAt).apply()
         }
         return SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY)
     }
+
+    /** The catalog's build date, like "20261023". */
+    val version: String get() = db.rawQuery("SELECT value FROM meta WHERE key = 'version'", null).use { if (it.moveToNext()) it.getString(0) else "" }
 
     /** The language filter: null shows every language. Defaults to the phone's language. */
     var language: String? = prefs.getString("language", null) ?: deviceLanguage()
@@ -249,6 +261,13 @@ class Catalog(private val context: Context) {
     }
 
     companion object {
+        /** The build date stored in a catalog file, or "" if it can't be read. */
+        fun versionOf(file: File): String = runCatching {
+            SQLiteDatabase.openDatabase(file.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+                db.rawQuery("SELECT value FROM meta WHERE key = 'version'", null).use { if (it.moveToNext()) it.getString(0) else "" }
+            }
+        }.getOrDefault("")
+
         @Volatile private var instance: Catalog? = null
         fun get(context: Context) = instance ?: synchronized(this) {
             instance ?: Catalog(context.applicationContext).also { instance = it }

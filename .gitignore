@@ -20,3 +20,6 @@ catalog/uploaded.txt
 !.dev.vars.example
 .env*
 !.env.example
+
+# Fonts used to draw store graphics (download from Google Fonts)
+store/*.ttf

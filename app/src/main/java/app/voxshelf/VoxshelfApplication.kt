@@ -6,5 +6,6 @@ class VoxshelfApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         CrashReports.install(this)
+        CatalogUpdates.checkInBackground(this)
     }
 }
