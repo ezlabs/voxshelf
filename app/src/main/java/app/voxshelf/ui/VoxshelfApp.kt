@@ -47,6 +47,7 @@ import app.voxshelf.PlayerViewModel
 private sealed interface Screen {
     data class Subject(val shelf: String, val name: String) : Screen
     data class Book(val workId: Int) : Screen
+    data class Collection(val collection: app.voxshelf.Collection, val shuffle: Long = System.nanoTime()) : Screen
     data object Player : Screen
     data class List(val list: UserList) : Screen
 }
@@ -85,6 +86,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                         ) else BrowseScreen(
                             catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },
+                            onCollection = { stack += Screen.Collection(it) },
                             onBook = { stack += Screen.Book(it.first.workId) },
                         )
                         is Screen.Subject -> SubjectScreen(
@@ -92,6 +94,13 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                             onBack = { stack.removeAt(stack.lastIndex) },
                             onBook = { stack += Screen.Book(it.first.workId) },
                         )
+                        is Screen.Collection -> androidx.compose.runtime.key(screen.shuffle) {
+                            CollectionScreen(
+                                catalog, language, screen.collection,
+                                onBack = { stack.removeAt(stack.lastIndex) },
+                                onBook = { stack += Screen.Book(it.first.workId) },
+                            )
+                        }
                         is Screen.List -> UserListScreen(
                             catalog, library, screen.list,
                             onBack = { stack.removeAt(stack.lastIndex) },

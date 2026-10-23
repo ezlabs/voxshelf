@@ -44,6 +44,13 @@ enum class Sort(val label: String, val sql: String) {
     Title("A to Z", "title COLLATE NOCASE"),
 }
 
+/** The ready-made lists at the top of Browse. */
+enum class Collection(val label: String, val title: String) {
+    Popular("Popular", "Popular right now"),
+    New("New", "New on LibriVox"),
+    Surprise("Surprise me", "Surprise me"),
+}
+
 data class WorkSummary(val first: Recording, val recordings: Int)
 
 data class Subject(val name: String, val books: Int)
@@ -96,10 +103,24 @@ class Catalog(private val context: Context) {
         works.map { (name, ids) -> Subject(name, ids.size) }.sortedByDescending { s -> s.books }
     }
 
-    suspend fun works(shelf: String, subject: String, sort: Sort): List<WorkSummary> = query(
-        "SELECT * FROM book WHERE shelf = ? AND ('|' || subjects || '|') LIKE ? AND $langFilter ORDER BY ${sort.sql}, score DESC, id",
+    suspend fun works(shelf: String, subject: String, sort: Sort, limit: Int = -1): List<WorkSummary> = query(
+        "SELECT * FROM book WHERE shelf = ? AND ('|' || subjects || '|') LIKE ? AND $langFilter ORDER BY ${sort.sql}, score DESC, id LIMIT $limit",
         shelf, "%|$subject|%", *langArgs().toTypedArray(),
     ) { group(it) }
+
+    /** The biggest subjects across all shelves, for the rows on the Browse page. */
+    suspend fun topSubjects(count: Int): List<Pair<String, Subject>> =
+        SHELVES.flatMap { shelf -> subjects(shelf).map { shelf to it } }.sortedByDescending { it.second.books }.take(count)
+
+    suspend fun collection(c: Collection, limit: Int = 300): List<WorkSummary> = when (c) {
+        Collection.Popular -> query("SELECT * FROM book WHERE $langFilter ORDER BY work_score DESC, score DESC, id LIMIT $limit", *langArgs().toTypedArray()) { group(it) }
+        Collection.New -> query("SELECT * FROM book WHERE $langFilter ORDER BY id DESC LIMIT $limit", *langArgs().toTypedArray()) { group(it) }
+        // A random pick from books people actually listen to, so surprises are usually good ones.
+        Collection.Surprise -> query(
+            "SELECT * FROM (SELECT * FROM book WHERE $langFilter ORDER BY work_score DESC LIMIT 4000) ORDER BY RANDOM() LIMIT ${minOf(limit, 60)}",
+            *langArgs().toTypedArray(),
+        ) { group(it) }
+    }
 
     suspend fun search(text: String): List<WorkSummary> {
         val terms = text.split(Regex("\\W+")).filter { it.isNotBlank() }

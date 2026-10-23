@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.voxshelf.Catalog
+import app.voxshelf.Collection
 import app.voxshelf.Ratings
 import app.voxshelf.Recording
 import app.voxshelf.Sort
@@ -66,13 +68,11 @@ fun BrowseScreen(
     query: String,
     onQuery: (String) -> Unit,
     onSubject: (shelf: String, subject: String) -> Unit,
+    onCollection: (Collection) -> Unit,
     onBook: (WorkSummary) -> Unit,
 ) {
-    var shelfIndex by rememberSaveable { mutableIntStateOf(0) }
-    val shelf = Catalog.SHELVES[shelfIndex]
     var showLanguages by remember { mutableStateOf(false) }
-    val subjects by produceState(emptyList<Subject>(), shelf, language) { value = catalog.subjects(shelf) }
-    val everythingElse by produceState(0, language) { value = catalog.subjects("").sumOf { it.books } }
+    var showFilter by remember { mutableStateOf(false) }
     val results by produceState<List<WorkSummary>?>(null, query, language) {
         value = if (query.isBlank()) null else {
             delay(200)
@@ -117,6 +117,80 @@ fun BrowseScreen(
                 .padding(horizontal = 20.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Pill("Filter") { showFilter = true }
+            Collection.entries.forEach { c -> Pill(c.label) { onCollection(c) } }
+        }
+        if (showFilter) FilterSheet(catalog, language, onDismiss = { showFilter = false }) { shelf, subject ->
+            showFilter = false
+            onSubject(shelf, subject)
+        }
+        Spacer(Modifier.height(8.dp))
+        val rows by produceState(emptyList<Pair<String, Subject>>(), language) { value = catalog.topSubjects(10) }
+        LazyColumn(contentPadding = PaddingValues(bottom = 24.dp)) {
+            item(key = "popular") {
+                ShelfRow(Collection.Popular.title, { catalog.collection(Collection.Popular, 15) }, language, onBook) { onCollection(Collection.Popular) }
+            }
+            items(rows, key = { "${it.first}/${it.second.name}" }) { (shelf, subject) ->
+                ShelfRow(subject.name, { catalog.works(shelf, subject.name, Sort.Recommended, 60).take(15) }, language, onBook) { onSubject(shelf, subject.name) }
+            }
+        }
+    }
+}
+
+/** One horizontally scrolling row of covers, with "See all" for the full list. */
+@Composable
+private fun ShelfRow(title: String, load: suspend () -> List<WorkSummary>, language: String?, onBook: (WorkSummary) -> Unit, onSeeAll: () -> Unit) {
+    val works by produceState(emptyList<WorkSummary>(), title, language) { value = load() }
+    Column(Modifier.padding(top = 16.dp)) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(title, style = text(19.sp, 800), maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+            Text(
+                "See all ›",
+                style = text(14.sp, 800, Lantern.Gold),
+                modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClick = onSeeAll).padding(12.dp),
+            )
+        }
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.height(232.dp),
+        ) {
+            items(works, key = { it.first.workId }) { work ->
+                val r = work.first
+                Column(Modifier.width(130.dp).clip(RoundedCornerShape(8.dp)).clickable { onBook(work) }) {
+                    Cover(r.title, r.authors, 130.dp, art = r.cover)
+                    Spacer(Modifier.height(8.dp))
+                    Text(r.title, style = text(14.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    AuthorLine(r, 12.sp)
+                }
+            }
+        }
+    }
+}
+
+/** Every subject, by shelf: what the Filter button opens. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun FilterSheet(catalog: Catalog, language: String?, onDismiss: () -> Unit, onPick: (shelf: String, subject: String) -> Unit) {
+    var shelfIndex by rememberSaveable { mutableIntStateOf(0) }
+    val shelf = Catalog.SHELVES[shelfIndex]
+    val subjects by produceState(emptyList<Subject>(), shelf, language) { value = catalog.subjects(shelf) }
+    val everythingElse by produceState(0, language) { value = catalog.subjects("").sumOf { it.books } }
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = Lantern.Forest,
+        sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true),
+    ) {
+        Text("Subjects", style = text(22.sp, 800), modifier = Modifier.padding(start = 20.dp, bottom = 12.dp))
+        Row(
+            Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
             Catalog.SHELVES.forEachIndexed { i, name -> Pill(name, selected = i == shelfIndex) { shelfIndex = i } }
         }
         Spacer(Modifier.height(16.dp))
@@ -131,7 +205,7 @@ fun BrowseScreen(
                     Modifier
                         .clip(RoundedCornerShape(22.dp))
                         .background(Lantern.Surface)
-                        .clickable(role = Role.Button) { onSubject(shelf, subject.name) }
+                        .clickable(role = Role.Button) { onPick(shelf, subject.name) }
                         .padding(16.dp)
                         .height(64.dp),
                     verticalArrangement = Arrangement.SpaceBetween,
@@ -146,11 +220,27 @@ fun BrowseScreen(
                     style = text(14.sp, 700, Lantern.Gold),
                     modifier = Modifier
                         .clip(RoundedCornerShape(12.dp))
-                        .clickable { onSubject("", Catalog.EVERYTHING_ELSE) }
+                        .clickable { onPick("", Catalog.EVERYTHING_ELSE) }
                         .padding(vertical = 14.dp, horizontal = 4.dp),
                 )
             }
         }
+    }
+}
+
+/** The full list behind a Popular / New / Surprise me pill. */
+@Composable
+fun CollectionScreen(catalog: Catalog, language: String?, collection: Collection, onBack: () -> Unit, onBook: (WorkSummary) -> Unit) {
+    val works by produceState<List<WorkSummary>?>(null, collection, language) { value = catalog.collection(collection) }
+    Column(Modifier.fillMaxSize()) {
+        Header(onBack)
+        Text(collection.title, style = text(28.sp, 800), modifier = Modifier.padding(horizontal = 20.dp))
+        val gallery = rememberGallery()
+        Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 2.dp, bottom = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text(works?.let { "%,d books".format(it.size) }.orEmpty(), style = text(14.sp, 600, Lantern.TextMuted), modifier = Modifier.weight(1f))
+            ViewToggle(gallery)
+        }
+        works?.let { BookList(it, gallery.value, onBook) }
     }
 }
 
