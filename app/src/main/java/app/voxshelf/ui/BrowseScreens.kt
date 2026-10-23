@@ -258,7 +258,7 @@ private fun BookList(works: List<WorkSummary>, gallery: Boolean, onBook: (WorkSu
                     androidx.compose.foundation.layout.BoxWithConstraints { Cover(r.title, r.authors, maxWidth, art = r.cover) }
                     Spacer(Modifier.height(8.dp))
                     Text(r.title, style = text(15.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(r.authors.ifBlank { "Various authors" }, style = text(13.sp, 600, Lantern.TextSoft), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    AuthorLine(r, 13.sp)
                 }
             }
         }
@@ -278,7 +278,7 @@ private fun BookList(works: List<WorkSummary>, gallery: Boolean, onBook: (WorkSu
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(r.authors.ifBlank { "Various authors" }, style = text(14.sp, 600, Lantern.TextSoft), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    AuthorLine(r, 14.sp)
                     Text(
                         if (work.recordings > 1) "${work.recordings} recordings" else listOfNotNull(length(r.seconds), readerLabel(r)).joinToString(" · "),
                         style = text(13.sp, 600, Lantern.TextMuted),

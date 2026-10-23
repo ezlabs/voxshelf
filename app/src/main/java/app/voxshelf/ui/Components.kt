@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -176,4 +177,19 @@ fun clock(ms: Long): String {
 fun hoursMinutes(ms: Long): String {
     val minutes = ms / 60_000
     return if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m" else "${minutes}m"
+}
+
+/** "Jane Austen · 1813" in book listings. A long author name is shortened so the year always shows. */
+@Composable
+fun AuthorLine(r: app.voxshelf.Recording, size: androidx.compose.ui.unit.TextUnit) {
+    Row {
+        Text(
+            r.authors.ifBlank { "Various authors" },
+            style = text(size, 600, Lantern.TextSoft),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        r.year?.let { Text(" · $it", style = text(size, 600, Lantern.TextSoft), maxLines = 1) }
+    }
 }

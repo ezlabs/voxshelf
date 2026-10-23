@@ -130,7 +130,7 @@ private fun BookRows(books: List<Recording>, status: Status?, onBook: (workId: I
                 Spacer(Modifier.width(14.dp))
                 Column(Modifier.weight(1f)) {
                     Text(r.title, style = text(16.sp, 800), maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    Text(r.authors.ifBlank { "Various authors" }, style = text(14.sp, 600, Lantern.TextSoft), maxLines = 1)
+                    AuthorLine(r, 14.sp)
                     val saved = positions.load(r.id)
                     val progress by produceState<String?>(null, r.id, saved) {
                         if (status == Status.Listening && saved != null) value = progressLine(LibriVox.saved(r.id, context.filesDir), saved, r)
