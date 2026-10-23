@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Back up your library, lists, listening spots and settings. Skip downloads and the catalog: both can be fetched again. -->
+<full-backup-content>
+    <include domain="database" path="library.db" />
+    <include domain="sharedpref" path="." />
+</full-backup-content>
