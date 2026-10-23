@@ -1,6 +1,7 @@
 /**
  * Voxshelf ratings: thumbs up or down on a LibriVox recording, plus optional problem reports.
  * POST /ratings saves (or replaces) one phone's rating. GET /ratings?ids=1,2 returns totals.
+ * POST /feedback posts a problem or idea from the app as a public GitHub issue.
  * POST /crashes files an app crash as a GitHub issue (one issue per distinct crash; repeats just add to a count).
  * Also serves small copies of LibriVox cover art: GET /covers/123.webp (PUT with the upload key adds one).
  */
@@ -13,6 +14,15 @@ export default {
     const url = new URL(request.url);
     const cover = url.pathname.match(/^\/covers\/(\d+)\.webp$/);
     if (cover) return covers(request, env, `${cover[1]}.webp`);
+    if (url.pathname === "/feedback" && request.method === "POST") {
+      const ip = request.headers.get("cf-connecting-ip") || "unknown";
+      if (env.RATINGS_LIMIT && !(await env.RATINGS_LIMIT.limit({ key: `feedback:${ip}` })).success) return json({ error: "too many" }, 429);
+      try {
+        return await feedback(await request.json(), env);
+      } catch (e) {
+        return json({ error: "bad request" }, 400);
+      }
+    }
     if (url.pathname === "/crashes" && request.method === "POST") {
       const ip = request.headers.get("cf-connecting-ip") || "unknown";
       if (env.RATINGS_LIMIT && !(await env.RATINGS_LIMIT.limit({ key: `crash:${ip}` })).success) return json({ error: "too many" }, 429);
@@ -77,9 +87,9 @@ ${text}`,
 }
 
 /** Calls the GitHub API for the app's repo; returns the response, or null if GitHub isn't set up or the call failed. */
-async function github(env, path, payload) {
-  if (!env.GITHUB_TOKEN || !env.GITHUB_REPO) return null;
-  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/${path}`, {
+async function github(env, path, payload, repo = env.GITHUB_REPO) {
+  if (!env.GITHUB_TOKEN || !repo) return null;
+  const res = await fetch(`https://api.github.com/repos/${repo}/${path}`, {
     method: "POST",
     headers: { authorization: `Bearer ${env.GITHUB_TOKEN}`, accept: "application/vnd.github+json", "user-agent": "voxshelf-ratings" },
     body: JSON.stringify(payload),
@@ -159,4 +169,25 @@ async function crash(body, env) {
 async function sha(text) {
   const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text)));
   return [...bytes].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// Feedback from the app's Settings goes to the public repo's issues. The app tells people it will be public.
+async function feedback(body, env) {
+  const kind = body.kind === "idea" ? "idea" : "problem";
+  const text = String(body.text || "").trim().slice(0, 4000);
+  // Too short to act on, or link-stuffed spam.
+  if (text.length < 10 || (text.match(/https?:\/\//g) || []).length > 2) return json({ error: "bad request" }, 400);
+  const details = kind === "problem"
+    ? [body.version && `App ${String(body.version).slice(0, 40)}`, body.android && `Android ${String(body.android).slice(0, 40)}`, body.model && String(body.model).slice(0, 80)]
+        .filter(Boolean).join(" · ")
+    : "";
+  const firstLine = text.split("\n")[0];
+  const title = firstLine.length > 80 ? `${firstLine.slice(0, 77).trimEnd()}…` : firstLine;
+  const created = await github(env, "issues", {
+    title,
+    labels: ["from the app", kind === "idea" ? "enhancement" : "bug"],
+    body: `${text}\n\n---\n_Sent from the Voxshelf app${details ? ` · ${details}` : ""}_`,
+  }, env.FEEDBACK_REPO);
+  if (!created) return json({ error: "could not file" }, 502);
+  return json({ ok: true, issue: created.number });
 }

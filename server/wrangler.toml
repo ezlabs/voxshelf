@@ -6,6 +6,7 @@ routes = [{ pattern = "api.voxshelf.app", custom_domain = true }]
 
 [vars]
 GITHUB_REPO = "ezlabs/voxshelf-reports"  # private: problem reports can include listener notes
+FEEDBACK_REPO = "ezlabs/voxshelf"  # public: the app says feedback is posted publicly
 
 [[d1_databases]]
 binding = "DB"
