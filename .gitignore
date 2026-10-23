@@ -9,3 +9,4 @@ local.properties
 *.iml
 .kotlin/
 app/src/main/assets/catalog.db
+catalog/popularity.json

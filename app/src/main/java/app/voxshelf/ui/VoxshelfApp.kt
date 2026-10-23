@@ -54,6 +54,7 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
     val catalog = remember { Catalog(context.applicationContext) }
     val stack = remember { mutableStateListOf<Screen>() }
     var query by rememberSaveable { mutableStateOf("") }
+    var language by remember { mutableStateOf(catalog.language) }
     val playerState by player.state.collectAsStateWithLifecycle()
 
     BackHandler(enabled = stack.isNotEmpty()) { stack.removeAt(stack.lastIndex) }
@@ -65,12 +66,12 @@ fun VoxshelfApp(player: PlayerViewModel = viewModel()) {
                 Box(Modifier.weight(1f)) {
                     when (screen) {
                         null -> BrowseScreen(
-                            catalog, query, { query = it },
+                            catalog, language, { catalog.language = it; language = it }, query, { query = it },
                             onSubject = { shelf, subject -> stack += Screen.Subject(shelf, subject) },
                             onBook = { stack += Screen.Book(it.first.workId) },
                         )
                         is Screen.Subject -> SubjectScreen(
-                            catalog, screen.shelf, screen.name,
+                            catalog, language, screen.shelf, screen.name,
                             onBack = { stack.removeAt(stack.lastIndex) },
                             onBook = { stack += Screen.Book(it.first.workId) },
                         )

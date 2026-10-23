@@ -15,6 +15,8 @@ VARIANT = re.compile(r"\s*\(([^)]*\b(?:version \d+|dramatic reading|abridged)\b[
 raw_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "raw")
 out = Path(sys.argv[2] if len(sys.argv) > 2 else "catalog.db")
 version = sys.argv[3] if len(sys.argv) > 3 else "dev"
+popularity_file = Path(sys.argv[4] if len(sys.argv) > 4 else "popularity.json")
+popularity = json.loads(popularity_file.read_text(encoding="utf-8")) if popularity_file.exists() else {}
 books = [b for f in sorted(raw_dir.glob("page_*.json")) for b in json.loads(f.read_text(encoding="utf-8"))]
 
 
@@ -62,6 +64,9 @@ for b in books:
         "abridged": 1 if "abridged" in label else 0,
         "cover": b.get("coverart_thumbnail"),
     }
+    # Internet Archive download counts: all-time and last month.
+    archive_id = (b.get("url_iarchive") or "").rstrip("/").rsplit("/", 1)[-1]
+    row["downloads"], row["month"] = (popularity.get(archive_id) or [0, 0, 0])[:2]
     genres = [g.get("name") or "" for g in (b.get("genres") or [])]
     row.update(flags(genres))
     row["_cands"] = candidates(genres)
@@ -71,8 +76,12 @@ for b in books:
 for work_id, members in enumerate(works.values(), 1):
     # Recordings of the same book share a shelf and subjects, so every version shows up in the same places.
     shelf, subjects = resolve(merge(r.pop("_cands") for r in members))
+    work_downloads = sum(r["downloads"] for r in members)
+    work_month = sum(r["month"] for r in members)
     for r in members:
         r["work_id"] = work_id
+        r["work_downloads"] = work_downloads
+        r["work_month"] = work_month
         r["shelf"] = shelf
         r["subjects"] = "|".join(subjects)
 

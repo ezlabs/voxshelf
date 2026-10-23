@@ -19,6 +19,8 @@ jobs:
           python-version: "3.12"
       - name: Fetch LibriVox catalog
         run: python catalog/fetch_catalog.py catalog/raw
+      - name: Fetch Internet Archive download counts
+        run: python catalog/fetch_popularity.py catalog/popularity.json
       - name: Get previous catalog
         env:
           GH_TOKEN: ${{ github.token }}
@@ -30,7 +32,7 @@ jobs:
         run: |
           VERSION=$(date -u +%Y%m%d)
           mkdir -p out
-          python catalog/build_catalog.py catalog/raw out/catalog.db "$VERSION"
+          python catalog/build_catalog.py catalog/raw out/catalog.db "$VERSION" catalog/popularity.json
           python catalog/diff_catalog.py prev/catalog.db out/catalog.db out "$VERSION" prev/manifest.json
           gzip -9 out/catalog.db
       - name: Publish to the "catalog" release

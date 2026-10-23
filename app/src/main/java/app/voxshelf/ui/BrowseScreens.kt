@@ -33,6 +33,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -50,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.voxshelf.Catalog
 import app.voxshelf.Recording
+import app.voxshelf.Sort
 import app.voxshelf.Subject
 import app.voxshelf.WorkSummary
 import kotlinx.coroutines.delay
@@ -57,6 +60,8 @@ import kotlinx.coroutines.delay
 @Composable
 fun BrowseScreen(
     catalog: Catalog,
+    language: String?,
+    onLanguage: (String?) -> Unit,
     query: String,
     onQuery: (String) -> Unit,
     onSubject: (shelf: String, subject: String) -> Unit,
@@ -64,9 +69,10 @@ fun BrowseScreen(
 ) {
     var shelfIndex by rememberSaveable { mutableIntStateOf(0) }
     val shelf = Catalog.SHELVES[shelfIndex]
-    val subjects by produceState(emptyList<Subject>(), shelf) { value = catalog.subjects(shelf) }
-    val everythingElse by produceState(0) { value = catalog.subjects("").sumOf { it.books } }
-    val results by produceState<List<WorkSummary>?>(null, query) {
+    var showLanguages by remember { mutableStateOf(false) }
+    val subjects by produceState(emptyList<Subject>(), shelf, language) { value = catalog.subjects(shelf) }
+    val everythingElse by produceState(0, language) { value = catalog.subjects("").sumOf { it.books } }
+    val results by produceState<List<WorkSummary>?>(null, query, language) {
         value = if (query.isBlank()) null else {
             delay(200)
             catalog.search(query)
@@ -74,7 +80,18 @@ fun BrowseScreen(
     }
 
     Column(Modifier.fillMaxSize()) {
-        Text("Voxshelf", style = text(30.sp, 800), modifier = Modifier.padding(start = 20.dp, top = 12.dp, bottom = 12.dp))
+        Row(
+            Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 12.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Voxshelf", style = text(30.sp, 800))
+            Pill(language ?: "All languages") { showLanguages = true }
+        }
+        if (showLanguages) LanguageSheet(catalog, language, onDismiss = { showLanguages = false }) {
+            onLanguage(it)
+            showLanguages = false
+        }
         SearchField(query, onQuery)
         Spacer(Modifier.height(16.dp))
 
@@ -170,10 +187,16 @@ private fun SearchField(query: String, onQuery: (String) -> Unit) {
 }
 
 @Composable
-fun SubjectScreen(catalog: Catalog, shelf: String, subject: String, onBack: () -> Unit, onBook: (WorkSummary) -> Unit) {
-    val works by produceState<List<WorkSummary>?>(null, shelf, subject) { value = catalog.works(shelf, subject) }
+fun SubjectScreen(catalog: Catalog, language: String?, shelf: String, subject: String, onBack: () -> Unit, onBook: (WorkSummary) -> Unit) {
+    var sort by rememberSaveable { mutableStateOf(Sort.Popular) }
+    val works by produceState<List<WorkSummary>?>(null, shelf, subject, sort, language) { value = catalog.works(shelf, subject, sort) }
     Column(Modifier.fillMaxSize()) {
-        Header(onBack)
+        Row(Modifier.fillMaxWidth().padding(end = 20.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Header(onBack)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Sort.entries.forEach { option -> Pill(option.label, selected = option == sort) { sort = option } }
+            }
+        }
         Text(subject, style = text(28.sp, 800), modifier = Modifier.padding(horizontal = 20.dp))
         Text(
             listOfNotNull(shelf.ifBlank { null }, works?.let { "%,d books".format(it.size) }).joinToString(" · "),
@@ -310,6 +333,30 @@ fun BookScreen(catalog: Catalog, workId: Int, playingId: Int?, onBack: () -> Uni
                 .clickable(role = Role.Button) { onPlay(book) }
                 .padding(vertical = 16.dp),
         )
+    }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSheet(catalog: Catalog, current: String?, onDismiss: () -> Unit, onPick: (String?) -> Unit) {
+    val languages by produceState(emptyList<Subject>()) { value = catalog.languages() }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onDismiss, containerColor = Lantern.Surface) {
+        Text("Show books in", style = text(20.sp, 800), modifier = Modifier.padding(start = 24.dp, bottom = 8.dp))
+        LazyColumn(Modifier.padding(bottom = 24.dp)) {
+            item { LanguageRow("All languages", null, current == null) { onPick(null) } }
+            items(languages) { LanguageRow(it.name, it.books, it.name == current) { onPick(it.name) } }
+        }
+    }
+}
+
+@Composable
+private fun LanguageRow(name: String, books: Int?, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().clickable(onClick = onClick).background(if (selected) Lantern.SurfaceHigh else Lantern.Surface).padding(horizontal = 24.dp, vertical = 14.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(name, style = text(16.sp, if (selected) 800 else 600, if (selected) Lantern.Gold else Lantern.Text))
+        if (books != null) Text("%,d".format(books), style = text(14.sp, 600, Lantern.TextMuted))
     }
 }
 
