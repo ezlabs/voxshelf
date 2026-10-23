@@ -28,10 +28,13 @@ jobs:
           mkdir -p prev
           gh release download catalog -D prev -p catalog.db.gz -p manifest.json -p openlibrary.json -p uploaded.txt || echo "No previous catalog"
           if [ -f prev/catalog.db.gz ]; then gunzip -k prev/catalog.db.gz; fi
-      - name: Fetch Open Library ratings (a slice each night)
+      - name: Open Library ratings
         run: |
           if [ -f prev/openlibrary.json ]; then cp prev/openlibrary.json catalog/openlibrary.json; fi
+          # Find new books on Open Library (search, once per book; at most 1,500 a night)...
           if [ -f prev/catalog.db ]; then python catalog/fetch_openlibrary.py prev/catalog.db catalog/openlibrary.json 1500; fi
+          # ...then take everyone's ratings from Open Library's small monthly ratings file.
+          if [ -f catalog/openlibrary.json ]; then python catalog/ol_ratings.py catalog/openlibrary.json; fi
       - name: Build phone catalog and changes
         run: |
           VERSION=$(date -u +%Y%m%d)

@@ -1,7 +1,8 @@
-"""Look up Open Library star ratings for catalog books, most recommended first.
+"""Find each catalog book's Open Library work (and its current rating), most recommended first.
 
-Results are kept in a cache file so each run only looks up books it hasn't seen, plus a slice of
-old entries to refresh. Arguments: catalog.db cache.json [max lookups this run].
+Each book is searched for once; results are kept in a cache file so later runs only look up new books.
+The ratings themselves are refreshed from Open Library's monthly ratings file by ol_ratings.py.
+Arguments: catalog.db cache.json [max lookups this run].
 """
 import json
 import re
@@ -13,7 +14,6 @@ import urllib.request
 from pathlib import Path
 
 API = "https://openlibrary.org/search.json"
-REFRESH_DAYS = 30
 db = sqlite3.connect(sys.argv[1] if len(sys.argv) > 1 else "catalog.db")
 cache_file = Path(sys.argv[2] if len(sys.argv) > 2 else "openlibrary.json")
 budget = int(sys.argv[3]) if len(sys.argv) > 3 else 3000
@@ -57,8 +57,6 @@ works = db.execute(
 ).fetchall()
 now = time.time()
 todo = [w for w in works if key(*w) not in cache]
-todo += sorted((w for w in works if key(*w) in cache and now - cache[key(*w)][3] > REFRESH_DAYS * 86400),
-               key=lambda w: cache[key(*w)][3])
 done = failed = 0
 for title, authors in todo[:budget]:
     try:
