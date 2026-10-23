@@ -13,3 +13,10 @@ catalog/popularity.json
 catalog/openlibrary.json
 catalog/covers/
 catalog/uploaded.txt
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
