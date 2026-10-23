@@ -7,7 +7,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from categories import classify
+from categories import FALLBACK, classify
 
 DESC_CHARS = 300
 VARIANT = re.compile(r"\s*\(([^)]*\b(?:version \d+|dramatic reading|abridged)\b[^)]*)\)\s*", re.I)
@@ -57,13 +57,18 @@ for b in books:
         "abridged": 1 if "abridged" in label else 0,
         "cover": b.get("coverart_thumbnail"),
     }
-    row.update(classify([g.get("name") or "" for g in (b.get("genres") or [])], b.get("copyright_year")))
+    row.update(classify([g.get("name") or "" for g in (b.get("genres") or [])]))
     rows.append(row)
     works[key].append(row)
 
 for work_id, members in enumerate(works.values(), 1):
+    # Recordings of the same book share categories, so every version shows up in the same places.
+    shared = list(dict.fromkeys(c for r in members for c in r["categories"].split("|") if c))
+    if len(shared) > 1 and FALLBACK in shared:
+        shared.remove(FALLBACK)
     for r in members:
         r["work_id"] = work_id
+        r["categories"] = "|".join(shared)
 
 out.unlink(missing_ok=True)
 con = sqlite3.connect(out)
