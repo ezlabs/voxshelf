@@ -91,7 +91,23 @@ class PlaybackService : MediaLibraryService() {
                 }
             }
         })
-        session = MediaLibrarySession.Builder(this, player, CarLibrary(this)).build()
+        // Back 15 / forward 30 seconds instead of previous / next chapter, in the car, notification and lock screen.
+        // Chapters stay reachable from the car's queue and the app's chapter list.
+        val buttons = listOf(
+            androidx.media3.session.CommandButton.Builder(androidx.media3.session.CommandButton.ICON_SKIP_BACK_15)
+                .setPlayerCommand(Player.COMMAND_SEEK_BACK)
+                .setDisplayName("Back 15 seconds")
+                .setSlots(androidx.media3.session.CommandButton.SLOT_BACK)
+                .build(),
+            androidx.media3.session.CommandButton.Builder(androidx.media3.session.CommandButton.ICON_SKIP_FORWARD_30)
+                .setPlayerCommand(Player.COMMAND_SEEK_FORWARD)
+                .setDisplayName("Forward 30 seconds")
+                .setSlots(androidx.media3.session.CommandButton.SLOT_FORWARD)
+                .build(),
+        )
+        session = MediaLibrarySession.Builder(this, player, CarLibrary(this))
+            .setMediaButtonPreferences(buttons)
+            .build()
     }
 
     /** Pressing play puts a book on the Listening shelf; reaching the end marks it finished (also when playing from the car). */
