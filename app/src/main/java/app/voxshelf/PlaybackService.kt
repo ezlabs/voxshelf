@@ -7,16 +7,17 @@ import androidx.media3.common.C
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
-import androidx.media3.session.MediaSession
-import androidx.media3.session.MediaSessionService
+import androidx.media3.session.MediaLibraryService
+import kotlinx.coroutines.launch
+import androidx.media3.session.MediaLibraryService.MediaLibrarySession
 
 /**
- * Plays audio in the background and powers the lock screen, notification,
- * headphone and Bluetooth controls. Saves the listening spot as it goes.
+ * Plays audio in the background and powers the lock screen, notification, headphone, Bluetooth and
+ * Android Auto controls. Saves the listening spot and updates the shelf as it goes, even with the app closed.
  */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-class PlaybackService : MediaSessionService() {
-    private var session: MediaSession? = null
+class PlaybackService : MediaLibraryService() {
+    private var session: MediaLibrarySession? = null
     private lateinit var positions: PositionStore
     private val handler = Handler(Looper.getMainLooper())
 
@@ -70,11 +71,15 @@ class PlaybackService : MediaSessionService() {
                     handler.postDelayed(saveTick, SAVE_EVERY_MS)
                     handler.post(sleepTick)
                     ahead.update(player)
+                    updateShelf(player, Status.Listening)
                 }
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_ENDED) ahead.clear(player)
+                if (playbackState == Player.STATE_ENDED) {
+                    ahead.clear(player)
+                    updateShelf(player, Status.Finished)
+                }
             }
 
             override fun onMediaItemTransition(mediaItem: androidx.media3.common.MediaItem?, reason: Int) {
@@ -86,15 +91,27 @@ class PlaybackService : MediaSessionService() {
                 }
             }
         })
-        session = MediaSession.Builder(this, player).build()
+        session = MediaLibrarySession.Builder(this, player, CarLibrary(this)).build()
     }
+
+    /** Pressing play puts a book on the Listening shelf; reaching the end marks it finished (also when playing from the car). */
+    private fun updateShelf(player: Player, status: Status) {
+        val bookId = bookIdOf(player.currentMediaItem?.mediaId) ?: return
+        scope.launch {
+            val workId = Catalog.get(this@PlaybackService).recording(bookId)?.workId ?: return@launch
+            val library = Library.get(this@PlaybackService)
+            if (library.entry(workId)?.status != status) library.setStatus(workId, bookId, status)
+        }
+    }
+
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.IO)
 
     private fun savePosition(player: Player) {
         val bookId = bookIdOf(player.currentMediaItem?.mediaId) ?: return
         positions.save(bookId, player.currentMediaItemIndex, player.currentPosition)
     }
 
-    override fun onGetSession(controllerInfo: MediaSession.ControllerInfo) = session
+    override fun onGetSession(controllerInfo: androidx.media3.session.MediaSession.ControllerInfo) = session
 
     override fun onTaskRemoved(rootIntent: android.content.Intent?) {
         val player = session?.player

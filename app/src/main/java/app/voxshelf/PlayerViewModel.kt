@@ -136,20 +136,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
 
-        val items = book.chapters.mapIndexed { i, chapter ->
-            MediaItem.Builder()
-                .setMediaId(mediaId(book.id, i))
-                .setUri(chapter.url.toUri())
-                .setMediaMetadata(
-                    MediaMetadata.Builder()
-                        .setTitle(chapter.title)
-                        .setArtist(book.author)
-                        .setAlbumTitle(book.title)
-                        .setArtworkUri(cover?.fast?.toUri())
-                        .build()
-                )
-                .build()
-        }
+        val items = chapterItems(book, cover)
         val saved = positions.load(bookId)
         player.setMediaItems(items, saved?.chapter ?: 0, saved?.positionMs ?: 0)
         player.prepare()

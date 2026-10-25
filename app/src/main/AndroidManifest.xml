@@ -37,6 +37,8 @@
             android:foregroundServiceType="mediaPlayback">
             <intent-filter>
                 <action android:name="androidx.media3.session.MediaSessionService" />
+                <action android:name="androidx.media3.session.MediaLibraryService" />
+                <action android:name="android.media.browse.MediaBrowserService" />
             </intent-filter>
         </service>
 
@@ -54,5 +56,15 @@
             android:name="androidx.media3.exoplayer.scheduler.PlatformScheduler$PlatformSchedulerService"
             android:exported="true"
             android:permission="android.permission.BIND_JOB_SERVICE" />
+        <!-- Android Auto: the car shows Voxshelf as a media app. -->
+        <meta-data
+            android:name="com.google.android.gms.car.application"
+            android:resource="@xml/automotive_app_desc" />
+
+        <!-- Cover art for Android Auto (public covers only; nothing private is served). -->
+        <provider
+            android:name=".CarArtProvider"
+            android:authorities="app.voxshelf.art"
+            android:exported="true" />
     </application>
 </manifest>
