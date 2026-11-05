@@ -446,11 +446,19 @@ private fun BookList(works: List<WorkSummary>, gallery: Boolean, onBook: (WorkSu
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, playingId: Int?, onBack: () -> Unit, onPlay: (Recording) -> Unit) {
-    val recordings by produceState(emptyList<Recording>(), workId) { value = catalog.recordings(workId) }
+    var shelved by remember(workId) { mutableStateOf<Int?>(null) }
+    val recordings by produceState(emptyList<Recording>(), workId) {
+        shelved = library.entry(workId)?.recordingId
+        value = catalog.recordings(workId)
+    }
     var selected by rememberSaveable(workId) { mutableIntStateOf(-1) }
-    // Until you pick one, show the recording you're listening to (or the first).
-    if (selected == -1 && recordings.isNotEmpty()) selected = recordings.indexOfFirst { it.id == playingId }.coerceAtLeast(0)
+    // Until you pick one, show the recording on your shelf, else the one playing, else the first.
+    if (selected == -1 && recordings.isNotEmpty()) {
+        selected = listOf(shelved, playingId).firstNotNullOfOrNull { id -> recordings.indexOfFirst { it.id == id }.takeIf { it >= 0 } } ?: 0
+    }
     val book = recordings.getOrNull(selected)
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val positions = remember { app.voxshelf.PositionStore(context) }
     val ratings = Ratings.get(androidx.compose.ui.platform.LocalContext.current)
     val summaries by produceState(emptyMap<Int, app.voxshelf.RatingSummary>(), recordings) {
         if (ratings.enabled) value = runCatching { ratings.summaries(recordings.map { it.id }) }.getOrDefault(emptyMap())
@@ -545,7 +553,7 @@ fun BookScreen(catalog: Catalog, library: app.voxshelf.Library, workId: Int, pla
             Spacer(Modifier.height(20.dp))
         }
         Text(
-            "Start listening",
+            if (positions.load(book.id) != null) "Continue listening" else "Start listening",
             style = text(17.sp, 800, Lantern.Forest),
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier
